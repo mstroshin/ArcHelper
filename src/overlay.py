@@ -103,14 +103,14 @@ class OverlayUI:
         while self.root is None:
             time.sleep(0.01)
 
-    def show(self, item_data, duration=10):
+    def show(self, item_data, duration=0):
         """
         Show the overlay with item information.
         This method is thread-safe and can be called from any thread.
 
         Args:
             item_data: Item data dictionary to display
-            duration: Time in seconds before auto-close (0 = no auto-close)
+            duration: Time in seconds before auto-close (0 = no auto-close, default)
         """
         self._command_queue.put(('show', (item_data, duration)))
 
@@ -126,7 +126,7 @@ class OverlayUI:
                 pass
             self.window = None
 
-    def _create_overlay(self, item_data, duration):
+    def _create_overlay(self, item_data, _duration):
         """Create and display the overlay window."""
         # Close existing window if any
         self._close_window()
@@ -158,11 +158,46 @@ class OverlayUI:
 
         # Bind close events
         self.window.bind('<Escape>', lambda e: self._close_window())
-        self.window.bind('<Button-1>', lambda e: self._close_window())  # Close on click
 
-        # Auto-close timer
-        if duration > 0:
-            self.auto_close_timer = self.root.after(duration * 1000, self._close_window)
+        # Setup click-outside detection
+        if WIN32_AVAILABLE:
+            self._setup_click_outside_detection()
+
+    def _setup_click_outside_detection(self):
+        """Setup detection for clicks outside the window."""
+        def check_click_outside():
+            if not self.window:
+                return
+
+            try:
+                # Get current cursor position
+                cursor_x, cursor_y = win32api.GetCursorPos()
+
+                # Get window position and size
+                win_x = self.window.winfo_x()
+                win_y = self.window.winfo_y()
+                win_width = self.window.winfo_width()
+                win_height = self.window.winfo_height()
+
+                # Check if left mouse button is pressed
+                left_button_state = win32api.GetAsyncKeyState(win32con.VK_LBUTTON)
+
+                # If button is pressed and cursor is outside window bounds
+                if left_button_state & 0x8000:  # Button is currently pressed
+                    if not (win_x <= cursor_x <= win_x + win_width and
+                           win_y <= cursor_y <= win_y + win_height):
+                        self._close_window()
+                        return
+
+                # Continue checking
+                if self.window:
+                    self.window.after(50, check_click_outside)
+
+            except Exception:
+                pass
+
+        # Start checking after a short delay
+        self.window.after(100, check_click_outside)
 
     def _position_near_cursor(self):
         """Position the window near the cursor."""
@@ -203,11 +238,11 @@ class OverlayUI:
         header.pack(fill=tk.X, padx=0, pady=0)
         header.pack_propagate(False)
 
-        title_label = tk.Label(header, text=get_text(self.language, 'app_title'), font=('Segoe UI', 10, 'bold'),
+        title_label = tk.Label(header, text=get_text(self.language, 'app_title'), font=('Segoe UI', 13, 'bold'),
                               fg=COLORS['accent'], bg=COLORS['bg_medium'])
         title_label.pack(side=tk.LEFT, padx=15, pady=10)
 
-        close_btn = tk.Label(header, text="✕", font=('Arial', 14, 'bold'),
+        close_btn = tk.Label(header, text="✕", font=('Arial', 17, 'bold'),
                             fg=COLORS['text_secondary'], bg=COLORS['bg_medium'],
                             cursor='hand2')
         close_btn.pack(side=tk.RIGHT, padx=15, pady=10)
@@ -276,7 +311,7 @@ class OverlayUI:
 
         # Item name with rarity color
         name = item_data.get('name', {}).get(self.language, item_data.get('id', 'Unknown'))
-        name_label = tk.Label(content, text=name, font=('Segoe UI', 16, 'bold'),
+        name_label = tk.Label(content, text=name, font=('Segoe UI', 19, 'bold'),
                              fg=rarity_color, bg=COLORS['bg_dark'],
                              wraplength=OVERLAY_WIDTH-60, justify='left')
         name_label.pack(anchor='w', pady=(0, 8))
@@ -288,13 +323,13 @@ class OverlayUI:
         item_type = item_data.get('type', 'N/A')
 
         # Rarity badge
-        rarity_badge = tk.Label(info_frame, text=rarity.upper(), font=('Segoe UI', 8, 'bold'),
+        rarity_badge = tk.Label(info_frame, text=rarity.upper(), font=('Segoe UI', 11, 'bold'),
                                fg=COLORS['bg_dark'], bg=rarity_color,
                                padx=8, pady=2)
         rarity_badge.pack(side=tk.LEFT, padx=(0, 8))
 
         # Type label
-        type_label = tk.Label(info_frame, text=item_type, font=('Segoe UI', 9),
+        type_label = tk.Label(info_frame, text=item_type, font=('Segoe UI', 12),
                              fg=COLORS['text_secondary'], bg=COLORS['bg_dark'])
         type_label.pack(side=tk.LEFT)
 
@@ -318,11 +353,11 @@ class OverlayUI:
                 prop_row = tk.Frame(prop_frame, bg=COLORS['bg_medium'])
                 prop_row.pack(fill=tk.X, pady=2)
 
-                icon_label = tk.Label(prop_row, text=icon, font=('Segoe UI', 10),
+                icon_label = tk.Label(prop_row, text=icon, font=('Segoe UI', 13),
                                      fg=COLORS['accent'], bg=COLORS['bg_medium'])
                 icon_label.pack(side=tk.LEFT, padx=(0, 8))
 
-                text_label = tk.Label(prop_row, text=text, font=('Segoe UI', 9),
+                text_label = tk.Label(prop_row, text=text, font=('Segoe UI', 12),
                                      fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
                 text_label.pack(side=tk.LEFT)
 
@@ -336,7 +371,7 @@ class OverlayUI:
                 bench_frame.pack(fill=tk.X, pady=(0, 12), padx=0)
 
                 bench_label = tk.Label(bench_frame, text=f"📍 {get_text(self.language, 'requires')}: {item_data['craftBench']}",
-                                      font=('Segoe UI', 9), fg=COLORS['accent'],
+                                      font=('Segoe UI', 12), fg=COLORS['accent'],
                                       bg=COLORS['bg_light'], padx=12, pady=6)
                 bench_label.pack(anchor='w')
 
@@ -357,7 +392,7 @@ class OverlayUI:
 
         # Close instructions
         close_label = tk.Label(content, text=get_text(self.language, 'close_instruction'),
-                              font=('Segoe UI', 8), fg=COLORS['text_tertiary'],
+                              font=('Segoe UI', 11), fg=COLORS['text_tertiary'],
                               bg=COLORS['bg_dark'])
         close_label.pack(pady=(15, 5))
 
@@ -375,7 +410,7 @@ class OverlayUI:
         """Add a card with text."""
         card = self._create_card_frame(parent)
 
-        font_style = ('Segoe UI', 9, 'italic') if italic else ('Segoe UI', 9)
+        font_style = ('Segoe UI', 12, 'italic') if italic else ('Segoe UI', 12)
         label = tk.Label(card, text=text, font=font_style,
                         fg=color, bg=COLORS['bg_medium'],
                         wraplength=OVERLAY_WIDTH-70, justify='left')
@@ -387,7 +422,7 @@ class OverlayUI:
         header_frame = tk.Frame(parent, bg=COLORS['bg_dark'])
         header_frame.pack(fill=tk.X, pady=(0, 8))
 
-        header = tk.Label(header_frame, text=title, font=('Segoe UI', 11, 'bold'),
+        header = tk.Label(header_frame, text=title, font=('Segoe UI', 14, 'bold'),
                          fg=accent_color, bg=COLORS['bg_dark'])
         header.pack(anchor='w')
 
@@ -403,17 +438,17 @@ class OverlayUI:
             mat_row.pack(fill=tk.X, pady=3)
 
             # Bullet point
-            bullet = tk.Label(mat_row, text="●", font=('Segoe UI', 8),
+            bullet = tk.Label(mat_row, text="●", font=('Segoe UI', 11),
                             fg=accent_color, bg=COLORS['bg_medium'])
             bullet.pack(side=tk.LEFT, padx=(0, 8))
 
             # Material name
-            name_label = tk.Label(mat_row, text=material_name, font=('Segoe UI', 9),
+            name_label = tk.Label(mat_row, text=material_name, font=('Segoe UI', 12),
                                  fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
             name_label.pack(side=tk.LEFT)
 
             # Amount badge
-            amount_badge = tk.Label(mat_row, text=f"x{amount}", font=('Segoe UI', 8, 'bold'),
+            amount_badge = tk.Label(mat_row, text=f"x{amount}", font=('Segoe UI', 11, 'bold'),
                                    fg=COLORS['bg_dark'], bg=accent_color,
                                    padx=6, pady=1)
             amount_badge.pack(side=tk.RIGHT)
@@ -425,7 +460,7 @@ class OverlayUI:
         header_frame.pack(fill=tk.X, pady=(0, 8))
 
         header_text = get_text(self.language, 'used_to_craft_count', count=len(items_using))
-        header = tk.Label(header_frame, text=header_text, font=('Segoe UI', 11, 'bold'),
+        header = tk.Label(header_frame, text=header_text, font=('Segoe UI', 14, 'bold'),
                          fg=COLORS['accent'], bg=COLORS['bg_dark'])
         header.pack(anchor='w')
 
@@ -442,12 +477,12 @@ class OverlayUI:
             item_row.pack(fill=tk.X, pady=3)
 
             # Arrow
-            arrow = tk.Label(item_row, text="→", font=('Segoe UI', 10),
+            arrow = tk.Label(item_row, text="→", font=('Segoe UI', 13),
                            fg=COLORS['accent'], bg=COLORS['bg_medium'])
             arrow.pack(side=tk.LEFT, padx=(0, 8))
 
             # Item name
-            name_label = tk.Label(item_row, text=used_name, font=('Segoe UI', 9),
+            name_label = tk.Label(item_row, text=used_name, font=('Segoe UI', 12),
                                  fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
             name_label.pack(side=tk.LEFT)
 
@@ -457,7 +492,7 @@ class OverlayUI:
             more_frame.pack(fill=tk.X, pady=(5, 0))
 
             more_label = tk.Label(more_frame, text=get_text(self.language, 'and_more', count=len(items_using) - 5),
-                                 font=('Segoe UI', 8, 'italic'), fg=COLORS['text_tertiary'],
+                                 font=('Segoe UI', 11, 'italic'), fg=COLORS['text_tertiary'],
                                  bg=COLORS['bg_medium'])
             more_label.pack(anchor='w')
 

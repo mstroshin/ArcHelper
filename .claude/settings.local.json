@@ -14,7 +14,9 @@
       "Bash(powershell -Command \"(Get-ChildItem ''Data\\Items\\Images\\*.webp'' | Measure-Object).Count\")",
       "Bash(del test_debug.py)",
       "Bash(where:*)",
-      "Bash(C:UsersmstroAppDataLocalMicrosoftWindowsAppspython.exe test_settings_gui.py)"
+      "Bash(C:UsersmstroAppDataLocalMicrosoftWindowsAppspython.exe test_settings_gui.py)",
+      "Bash(C:UsersmstroAppDataLocalMicrosoftWindowsAppspython.exe test_overlay_close.py)",
+      "Bash(cmd /c \"python test_overlay_close.py\")"
     ],
     "deny": [],
     "ask": []

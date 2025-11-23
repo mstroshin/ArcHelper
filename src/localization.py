@@ -20,7 +20,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 Used to Craft ({count} items)',
 
         # Instructions
-        'close_instruction': 'Press ESC or click anywhere to close',
+        'close_instruction': 'Press ESC or click outside to close',
         'and_more': '... and {count} more',
 
         # Settings GUI
@@ -60,7 +60,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 Используется для крафта ({count} предм.)',
 
         # Instructions
-        'close_instruction': 'Нажмите ESC или кликните чтобы закрыть',
+        'close_instruction': 'Нажмите ESC или кликните вне окна',
         'and_more': '... и ещё {count}',
 
         # Settings GUI
@@ -100,7 +100,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 Verwendet für ({count} Gegenstände)',
 
         # Instructions
-        'close_instruction': 'ESC drücken oder klicken zum Schließen',
+        'close_instruction': 'ESC drücken oder außerhalb klicken',
         'and_more': '... und {count} weitere',
 
         # Settings GUI
@@ -140,7 +140,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 Utilisé pour fabriquer ({count} objets)',
 
         # Instructions
-        'close_instruction': 'Appuyez sur ESC ou cliquez pour fermer',
+        'close_instruction': 'Appuyez sur ESC ou cliquez à l\'extérieur',
         'and_more': '... et {count} de plus',
 
         # Settings GUI (copying from English for now)
@@ -180,7 +180,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 Usado para fabricar ({count} objetos)',
 
         # Instructions
-        'close_instruction': 'Presione ESC o haga clic para cerrar',
+        'close_instruction': 'Presione ESC o haga clic afuera',
         'and_more': '... y {count} más',
 
         # Settings GUI
@@ -220,7 +220,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 Usado para fabricar ({count} itens)',
 
         # Instructions
-        'close_instruction': 'Pressione ESC ou clique para fechar',
+        'close_instruction': 'Pressione ESC ou clique fora',
         'and_more': '... e mais {count}',
 
         # Settings GUI
@@ -260,7 +260,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 Używane do wytworzenia ({count} przedmiotów)',
 
         # Instructions
-        'close_instruction': 'Naciśnij ESC lub kliknij, aby zamknąć',
+        'close_instruction': 'Naciśnij ESC lub kliknij na zewnątrz',
         'and_more': '... i jeszcze {count}',
 
         # Settings GUI
@@ -300,7 +300,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 Usato per fabbricare ({count} oggetti)',
 
         # Instructions
-        'close_instruction': 'Premi ESC o clicca per chiudere',
+        'close_instruction': 'Premi ESC o clicca fuori',
         'and_more': '... e altri {count}',
     },
     'ja': {
@@ -321,7 +321,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 クラフトに使用 ({count}個)',
 
         # Instructions
-        'close_instruction': 'ESCキーまたはクリックで閉じる',
+        'close_instruction': 'ESCキーまたは外側をクリック',
         'and_more': '... 他{count}個',
     },
     'zh-CN': {
@@ -342,7 +342,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 用于制作 ({count}个物品)',
 
         # Instructions
-        'close_instruction': '按ESC或点击关闭',
+        'close_instruction': '按ESC或点击外部',
         'and_more': '... 还有{count}个',
     },
     'zh-TW': {
@@ -363,7 +363,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 用於製作 ({count}個物品)',
 
         # Instructions
-        'close_instruction': '按ESC或點擊關閉',
+        'close_instruction': '按ESC或點擊外部',
         'and_more': '... 還有{count}個',
     },
     'kr': {
@@ -384,7 +384,7 @@ UI_TEXTS = {
         'used_to_craft_count': '🔧 제작에 사용 ({count}개 아이템)',
 
         # Instructions
-        'close_instruction': 'ESC 키 또는 클릭하여 닫기',
+        'close_instruction': 'ESC 키 또는 바깥쪽 클릭',
         'and_more': '... 그리고 {count}개 더',
     },
 }
