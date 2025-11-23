@@ -11,9 +11,9 @@ MATCH_THRESHOLD = 0.4  # Similarity threshold for image matching (0.0-1.0)
 CAPTURE_SIZE = (160, 160)  # Size of the region to capture around cursor
 
 # Overlay settings
-OVERLAY_WIDTH = 400
-OVERLAY_HEIGHT = 600
-OVERLAY_ALPHA = 0.95  # Transparency (0.0-1.0, 1.0 = opaque)
+OVERLAY_WIDTH = 420
+OVERLAY_HEIGHT = 650
+OVERLAY_ALPHA = 0.97  # Transparency (0.0-1.0, 1.0 = opaque)
 
 # Language settings
 DEFAULT_LANGUAGE = 'en'  # Default language for item names/descriptions

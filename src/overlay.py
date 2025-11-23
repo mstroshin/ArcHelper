@@ -6,6 +6,33 @@ import threading
 import queue
 from src.config import OVERLAY_WIDTH, OVERLAY_HEIGHT, OVERLAY_ALPHA, DEFAULT_LANGUAGE
 
+# Color schemes for different rarities
+RARITY_COLORS = {
+    'common': '#9D9D9D',
+    'uncommon': '#1EFF00',
+    'rare': '#0070DD',
+    'epic': '#A335EE',
+    'legendary': '#FF8000',
+    'mythic': '#E6CC80',
+    'default': '#FFFFFF'
+}
+
+# Modern color palette
+COLORS = {
+    'bg_dark': '#1a1a1a',
+    'bg_medium': '#2d2d2d',
+    'bg_light': '#3d3d3d',
+    'accent': '#00d4ff',
+    'accent_dim': '#0099cc',
+    'text_primary': '#ffffff',
+    'text_secondary': '#b8b8b8',
+    'text_tertiary': '#808080',
+    'success': '#00ff88',
+    'warning': '#ffaa00',
+    'border': '#4d4d4d',
+    'shadow': '#000000'
+}
+
 try:
     import win32api
     import win32con
@@ -105,18 +132,22 @@ class OverlayUI:
 
         # Create the window as Toplevel (not a new Tk instance)
         self.window = tk.Toplevel(self.root)
-        self.window.title("ArcHelper - Item Info")
+        self.window.title("ArcHelper")
 
         # Window configuration
         self.window.geometry(f"{OVERLAY_WIDTH}x{OVERLAY_HEIGHT}")
         self.window.attributes('-topmost', True)  # Always on top
         self.window.attributes('-alpha', OVERLAY_ALPHA)  # Transparency
+        self.window.configure(bg=COLORS['bg_dark'])
 
         # Try to make it tool window style (no taskbar icon)
         try:
             self.window.attributes('-toolwindow', True)
         except:
             pass
+
+        # Remove window decorations for modern look
+        self.window.overrideredirect(True)
 
         # Position near cursor
         self._position_near_cursor()
@@ -158,130 +189,276 @@ class OverlayUI:
     def _create_content(self, item_data):
         """Create the content for the overlay window."""
 
-        # Main frame with padding
-        main_frame = ttk.Frame(self.window, padding="10")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # Border frame for modern look
+        border_frame = tk.Frame(self.window, bg=COLORS['accent'], bd=0)
+        border_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
 
-        # Create scrollable canvas
-        canvas = tk.Canvas(main_frame, bg='#2b2b2b', highlightthickness=0)
-        scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
+        # Main container
+        container = tk.Frame(border_frame, bg=COLORS['bg_dark'], bd=0)
+        container.pack(fill=tk.BOTH, expand=True)
 
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        # Header with close button
+        header = tk.Frame(container, bg=COLORS['bg_medium'], height=40)
+        header.pack(fill=tk.X, padx=0, pady=0)
+        header.pack_propagate(False)
+
+        title_label = tk.Label(header, text="ARC HELPER", font=('Segoe UI', 10, 'bold'),
+                              fg=COLORS['accent'], bg=COLORS['bg_medium'])
+        title_label.pack(side=tk.LEFT, padx=15, pady=10)
+
+        close_btn = tk.Label(header, text="✕", font=('Arial', 14, 'bold'),
+                            fg=COLORS['text_secondary'], bg=COLORS['bg_medium'],
+                            cursor='hand2')
+        close_btn.pack(side=tk.RIGHT, padx=15, pady=10)
+        close_btn.bind('<Button-1>', lambda e: self._close_window())
+
+        # Main content frame with padding
+        main_frame = tk.Frame(container, bg=COLORS['bg_dark'])
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+
+        # Create scrollable canvas with modern styling
+        canvas = tk.Canvas(main_frame, bg=COLORS['bg_dark'], highlightthickness=0, bd=0)
+
+        # Custom styled scrollbar
+        scrollbar_frame = tk.Frame(main_frame, bg=COLORS['bg_medium'], width=8)
+        scrollbar_canvas = tk.Canvas(scrollbar_frame, bg=COLORS['bg_medium'],
+                                     highlightthickness=0, width=8)
+
+        scrollable_frame = tk.Frame(canvas, bg=COLORS['bg_dark'])
+
+        def on_frame_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            # Update scrollbar
+            update_scrollbar()
+
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            update_scrollbar()
+
+        def update_scrollbar():
+            # Custom scrollbar drawing
+            scrollbar_canvas.delete("all")
+            if canvas.winfo_height() > 0:
+                view = canvas.yview()
+                total_height = scrollbar_canvas.winfo_height()
+                bar_height = max(20, total_height * (view[1] - view[0]))
+                bar_y = total_height * view[0]
+
+                scrollbar_canvas.create_rectangle(1, bar_y, 7, bar_y + bar_height,
+                                                  fill=COLORS['accent_dim'], outline='')
+
+        scrollable_frame.bind("<Configure>", on_frame_configure)
+        canvas.bind_all("<MouseWheel>", on_mousewheel)
 
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
 
         # Add content to scrollable frame
         self._add_item_info(scrollable_frame, item_data)
 
-        # Pack scrollbar and canvas
+        # Pack components
         canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        scrollbar_frame.pack(side="right", fill="y")
+        scrollbar_canvas.pack(fill="both", expand=True)
+
+        self.window.after(100, update_scrollbar)
 
     def _add_item_info(self, parent, item_data):
         """Add item information to the frame."""
 
-        # Item name
+        # Content padding
+        content = tk.Frame(parent, bg=COLORS['bg_dark'])
+        content.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
+
+        # Get rarity color
+        rarity = item_data.get('rarity', 'common').lower()
+        rarity_color = RARITY_COLORS.get(rarity, RARITY_COLORS['default'])
+
+        # Item name with rarity color
         name = item_data.get('name', {}).get(self.language, item_data.get('id', 'Unknown'))
-        name_label = tk.Label(parent, text=name, font=('Arial', 14, 'bold'),
-                             fg='#FFD700', bg='#2b2b2b', wraplength=OVERLAY_WIDTH-40)
-        name_label.pack(anchor='w', pady=(0, 5))
+        name_label = tk.Label(content, text=name, font=('Segoe UI', 16, 'bold'),
+                             fg=rarity_color, bg=COLORS['bg_dark'],
+                             wraplength=OVERLAY_WIDTH-60, justify='left')
+        name_label.pack(anchor='w', pady=(0, 8))
 
-        # Item type and rarity
+        # Item type and rarity badge
+        info_frame = tk.Frame(content, bg=COLORS['bg_dark'])
+        info_frame.pack(anchor='w', pady=(0, 12))
+
         item_type = item_data.get('type', 'N/A')
-        rarity = item_data.get('rarity', 'N/A')
 
-        info_text = f"Type: {item_type} | Rarity: {rarity}"
-        info_label = tk.Label(parent, text=info_text, font=('Arial', 9),
-                             fg='#CCCCCC', bg='#2b2b2b')
-        info_label.pack(anchor='w', pady=(0, 10))
+        # Rarity badge
+        rarity_badge = tk.Label(info_frame, text=rarity.upper(), font=('Segoe UI', 8, 'bold'),
+                               fg=COLORS['bg_dark'], bg=rarity_color,
+                               padx=8, pady=2)
+        rarity_badge.pack(side=tk.LEFT, padx=(0, 8))
 
-        # Separator
-        separator = tk.Frame(parent, height=2, bg='#555555')
-        separator.pack(fill='x', pady=5)
+        # Type label
+        type_label = tk.Label(info_frame, text=item_type, font=('Segoe UI', 9),
+                             fg=COLORS['text_secondary'], bg=COLORS['bg_dark'])
+        type_label.pack(side=tk.LEFT)
 
-        # Description
+        # Description card
         description = item_data.get('description', {}).get(self.language, '')
         if description:
-            desc_label = tk.Label(parent, text=description, font=('Arial', 9),
-                                 fg='#FFFFFF', bg='#2b2b2b', wraplength=OVERLAY_WIDTH-40,
-                                 justify='left')
-            desc_label.pack(anchor='w', pady=(0, 10))
+            self._add_card(content, description, COLORS['text_secondary'], italic=True)
 
-        # Properties (weight, stack size, value)
+        # Properties card
         properties = []
         if 'weightKg' in item_data:
-            properties.append(f"Weight: {item_data['weightKg']} kg")
+            properties.append(('⚖', f"{item_data['weightKg']} kg"))
         if 'stackSize' in item_data:
-            properties.append(f"Stack: {item_data['stackSize']}")
+            properties.append(('📦', f"Stack: {item_data['stackSize']}"))
         if 'value' in item_data:
-            properties.append(f"Value: {item_data['value']}")
+            properties.append(('💰', f"{item_data['value']} credits"))
 
         if properties:
-            prop_text = " | ".join(properties)
-            prop_label = tk.Label(parent, text=prop_text, font=('Arial', 9),
-                                 fg='#AAAAAA', bg='#2b2b2b')
-            prop_label.pack(anchor='w', pady=(0, 10))
+            prop_frame = self._create_card_frame(content)
+            for icon, text in properties:
+                prop_row = tk.Frame(prop_frame, bg=COLORS['bg_medium'])
+                prop_row.pack(fill=tk.X, pady=2)
+
+                icon_label = tk.Label(prop_row, text=icon, font=('Segoe UI', 10),
+                                     fg=COLORS['accent'], bg=COLORS['bg_medium'])
+                icon_label.pack(side=tk.LEFT, padx=(0, 8))
+
+                text_label = tk.Label(prop_row, text=text, font=('Segoe UI', 9),
+                                     fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
+                text_label.pack(side=tk.LEFT)
 
         # Crafting recipe
         if 'recipe' in item_data:
-            self._add_section(parent, "Crafting Recipe:", item_data['recipe'])
+            self._add_material_section(content, "🔨 Crafting Recipe", item_data['recipe'],
+                                      COLORS['warning'])
 
             if 'craftBench' in item_data:
-                bench_label = tk.Label(parent, text=f"Craft Bench: {item_data['craftBench']}",
-                                      font=('Arial', 9), fg='#88CCFF', bg='#2b2b2b')
-                bench_label.pack(anchor='w', pady=(0, 10))
+                bench_frame = tk.Frame(content, bg=COLORS['bg_light'], bd=0)
+                bench_frame.pack(fill=tk.X, pady=(0, 12), padx=0)
+
+                bench_label = tk.Label(bench_frame, text=f"📍 Requires: {item_data['craftBench']}",
+                                      font=('Segoe UI', 9), fg=COLORS['accent'],
+                                      bg=COLORS['bg_light'], padx=12, pady=6)
+                bench_label.pack(anchor='w')
 
         # Recycles into
         if 'recyclesInto' in item_data:
-            self._add_section(parent, "Recycles Into:", item_data['recyclesInto'])
+            self._add_material_section(content, "♻ Recycles Into", item_data['recyclesInto'],
+                                      COLORS['success'])
 
         # Salvages into
         if 'salvagesInto' in item_data:
-            self._add_section(parent, "Salvages Into:", item_data['salvagesInto'])
+            self._add_material_section(content, "🔧 Salvages Into", item_data['salvagesInto'],
+                                      COLORS['success'])
 
         # Used to craft (reverse mapping)
         items_using = self.database.get_items_using_material(item_data['id'])
         if items_using:
-            self._add_section_header(parent, f"Used to Craft ({len(items_using)} items):")
-            for used_item in items_using[:5]:  # Show first 5
-                used_name = used_item.get('name', {}).get(self.language, used_item['id'])
-                amount = used_item.get('recipe', {}).get(item_data['id'], 0)
-                item_label = tk.Label(parent, text=f"  • {used_name} (x{amount})",
-                                     font=('Arial', 9), fg='#FFFFFF', bg='#2b2b2b')
-                item_label.pack(anchor='w')
-
-            if len(items_using) > 5:
-                more_label = tk.Label(parent, text=f"  ... and {len(items_using) - 5} more",
-                                     font=('Arial', 9, 'italic'), fg='#888888', bg='#2b2b2b')
-                more_label.pack(anchor='w', pady=(0, 10))
+            self._add_crafting_uses_section(content, items_using)
 
         # Close instructions
-        close_label = tk.Label(parent, text="\nPress ESC or click to close",
-                              font=('Arial', 8, 'italic'), fg='#666666', bg='#2b2b2b')
-        close_label.pack(pady=(10, 0))
+        close_label = tk.Label(content, text="Press ESC or click anywhere to close",
+                              font=('Segoe UI', 8), fg=COLORS['text_tertiary'],
+                              bg=COLORS['bg_dark'])
+        close_label.pack(pady=(15, 5))
 
-    def _add_section_header(self, parent, title):
-        """Add a section header."""
-        header = tk.Label(parent, text=title, font=('Arial', 10, 'bold'),
-                         fg='#88FF88', bg='#2b2b2b')
-        header.pack(anchor='w', pady=(10, 5))
+    def _create_card_frame(self, parent):
+        """Create a card-style frame."""
+        card = tk.Frame(parent, bg=COLORS['bg_medium'], bd=0)
+        card.pack(fill=tk.X, pady=(0, 12), padx=0)
 
-    def _add_section(self, parent, title, materials_dict):
-        """Add a materials section."""
-        self._add_section_header(parent, title)
+        inner = tk.Frame(card, bg=COLORS['bg_medium'])
+        inner.pack(fill=tk.X, padx=12, pady=8)
+
+        return inner
+
+    def _add_card(self, parent, text, color, italic=False):
+        """Add a card with text."""
+        card = self._create_card_frame(parent)
+
+        font_style = ('Segoe UI', 9, 'italic') if italic else ('Segoe UI', 9)
+        label = tk.Label(card, text=text, font=font_style,
+                        fg=color, bg=COLORS['bg_medium'],
+                        wraplength=OVERLAY_WIDTH-70, justify='left')
+        label.pack(anchor='w')
+
+    def _add_material_section(self, parent, title, materials_dict, accent_color):
+        """Add a materials section with modern styling."""
+        # Section header
+        header_frame = tk.Frame(parent, bg=COLORS['bg_dark'])
+        header_frame.pack(fill=tk.X, pady=(0, 8))
+
+        header = tk.Label(header_frame, text=title, font=('Segoe UI', 11, 'bold'),
+                         fg=accent_color, bg=COLORS['bg_dark'])
+        header.pack(anchor='w')
+
+        # Materials card
+        card = self._create_card_frame(parent)
 
         for material_id, amount in materials_dict.items():
             material_item = self.database.get_item(material_id)
             material_name = material_item.get('name', {}).get(self.language, material_id) if material_item else material_id
 
-            material_label = tk.Label(parent, text=f"  • {material_name} x{amount}",
-                                     font=('Arial', 9), fg='#FFFFFF', bg='#2b2b2b')
-            material_label.pack(anchor='w')
+            # Material row
+            mat_row = tk.Frame(card, bg=COLORS['bg_medium'])
+            mat_row.pack(fill=tk.X, pady=3)
+
+            # Bullet point
+            bullet = tk.Label(mat_row, text="●", font=('Segoe UI', 8),
+                            fg=accent_color, bg=COLORS['bg_medium'])
+            bullet.pack(side=tk.LEFT, padx=(0, 8))
+
+            # Material name
+            name_label = tk.Label(mat_row, text=material_name, font=('Segoe UI', 9),
+                                 fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
+            name_label.pack(side=tk.LEFT)
+
+            # Amount badge
+            amount_badge = tk.Label(mat_row, text=f"x{amount}", font=('Segoe UI', 8, 'bold'),
+                                   fg=COLORS['bg_dark'], bg=accent_color,
+                                   padx=6, pady=1)
+            amount_badge.pack(side=tk.RIGHT)
+
+    def _add_crafting_uses_section(self, parent, items_using):
+        """Add 'Used to Craft' section."""
+        # Section header
+        header_frame = tk.Frame(parent, bg=COLORS['bg_dark'])
+        header_frame.pack(fill=tk.X, pady=(0, 8))
+
+        header_text = f"🔧 Used to Craft ({len(items_using)} items)"
+        header = tk.Label(header_frame, text=header_text, font=('Segoe UI', 11, 'bold'),
+                         fg=COLORS['accent'], bg=COLORS['bg_dark'])
+        header.pack(anchor='w')
+
+        # Items card
+        card = self._create_card_frame(parent)
+
+        # Show first 5 items
+        for used_item in items_using[:5]:
+            used_name = used_item.get('name', {}).get(self.language, used_item['id'])
+            amount = used_item.get('recipe', {}).get(used_item.get('id'), 0)
+
+            # Item row
+            item_row = tk.Frame(card, bg=COLORS['bg_medium'])
+            item_row.pack(fill=tk.X, pady=3)
+
+            # Arrow
+            arrow = tk.Label(item_row, text="→", font=('Segoe UI', 10),
+                           fg=COLORS['accent'], bg=COLORS['bg_medium'])
+            arrow.pack(side=tk.LEFT, padx=(0, 8))
+
+            # Item name
+            name_label = tk.Label(item_row, text=used_name, font=('Segoe UI', 9),
+                                 fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
+            name_label.pack(side=tk.LEFT)
+
+        # Show "more" indicator if needed
+        if len(items_using) > 5:
+            more_frame = tk.Frame(card, bg=COLORS['bg_medium'])
+            more_frame.pack(fill=tk.X, pady=(5, 0))
+
+            more_label = tk.Label(more_frame, text=f"... and {len(items_using) - 5} more",
+                                 font=('Segoe UI', 8, 'italic'), fg=COLORS['text_tertiary'],
+                                 bg=COLORS['bg_medium'])
+            more_label.pack(anchor='w')
 
     def cleanup(self):
         """Cleanup overlay resources."""
