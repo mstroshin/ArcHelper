@@ -20,6 +20,8 @@ from src.hotkey_manager import HotkeyManager
 from src.screen_capture import ScreenCapture
 from src.image_recognition import ItemRecognizer
 from src.overlay import OverlayUI
+from src.settings_manager import SettingsManager
+from src.settings_gui import SettingsGUI
 
 
 def flush_print(*args, **kwargs):
@@ -38,6 +40,23 @@ class ArcHelper:
         self.screen_capture = None
         self.overlay = None
         self.hotkey_manager = None
+        self.settings_manager = None
+        self.settings_gui = None
+
+    def on_settings_saved(self):
+        """Callback when settings are saved."""
+        flush_print("\n✓ Settings saved!")
+        flush_print("Settings will be applied on next restart.")
+
+    def on_settings_closed(self):
+        """Callback when settings window is closed."""
+        flush_print("\nSettings window closed. Exiting application...")
+        # Stop the application
+        if self.hotkey_manager:
+            self.hotkey_manager.stop()
+        # Exit the program
+        import sys
+        sys.exit(0)
 
     def initialize(self):
         """Initialize all components."""
@@ -45,8 +64,14 @@ class ArcHelper:
         flush_print("ArcHelperPy - Initializing...")
         flush_print("=" * 60 + "\n")
 
+        # Load settings
+        flush_print("Loading settings...")
+        self.settings_manager = SettingsManager()
+        flush_print(f"✓ Settings loaded (Language: {self.settings_manager.get_language()}, "
+                   f"Hotkey: {self.settings_manager.get_recognition_hotkey()})")
+
         # Check admin privileges
-        flush_print("Checking administrator privileges...")
+        flush_print("\nChecking administrator privileges...")
         temp_hotkey = HotkeyManager()
         temp_hotkey.check_admin_privileges()
         temp_hotkey.cleanup()
@@ -63,31 +88,56 @@ class ArcHelper:
         self.recognizer.load_templates()
         flush_print(f"✓ Loaded {len(self.recognizer.templates)} icon templates")
 
-        # Initialize screen capture
+        # Initialize screen capture with settings
         flush_print("\nInitializing screen capture...")
+        capture_size = self.settings_manager.get_capture_size()
         self.screen_capture = ScreenCapture()
-        flush_print("✓ Screen capture ready")
+        flush_print(f"✓ Screen capture ready (Size: {capture_size[0]}x{capture_size[1]})")
 
-        # Initialize overlay UI
+        # Initialize overlay UI with language from settings
         flush_print("\nInitializing overlay UI...")
-        self.overlay = OverlayUI(self.database)
-        flush_print("✓ Overlay UI ready")
+        self.overlay = OverlayUI(self.database, language=self.settings_manager.get_language())
+        flush_print(f"✓ Overlay UI ready (Language: {self.settings_manager.get_language()})")
 
         # Setup hotkey manager
         flush_print("\nSetting up hotkey manager...")
         self.hotkey_manager = HotkeyManager()
-        self.hotkey_manager.register_hotkey('ctrl+d', self.on_hotkey_pressed)
-        flush_print("✓ Hotkey registered")
+
+        # Register recognition hotkey from settings
+        recognition_hotkey = self.settings_manager.get_recognition_hotkey()
+        flush_print(f"\nRegistering recognition hotkey: '{recognition_hotkey}'")
+
+        # Create a wrapper to test callback
+        def hotkey_wrapper():
+            flush_print(f"\n[DEBUG] Hotkey callback invoked for: {recognition_hotkey}")
+            self.on_hotkey_pressed()
+
+        self.hotkey_manager.register_hotkey(recognition_hotkey, hotkey_wrapper)
+        flush_print(f"Active hotkey: {recognition_hotkey.upper()}")
+
+        # Test if keyboard library is working
+        import keyboard
+        flush_print(f"\nKeyboard library version: {keyboard.__version__ if hasattr(keyboard, '__version__') else 'unknown'}")
+        flush_print(f"Registered hotkeys in manager: {self.hotkey_manager.registered_hotkeys}")
 
         flush_print("\n" + "=" * 60)
         flush_print("✓ Initialization complete!")
         flush_print("=" * 60)
         flush_print("\n📋 Usage:")
         flush_print("  1. Hover your cursor over an item in-game")
-        flush_print("  2. Press Ctrl+D to identify the item")
+        flush_print(f"  2. Press {recognition_hotkey.upper()} to identify the item")
         flush_print("  3. View item information in the overlay")
         flush_print("  4. Press ESC or click to close the overlay")
+        flush_print("\n⚙️  Settings:")
+        flush_print("  - Settings window is open")
+        flush_print("  - Close settings window to exit the application")
         flush_print("\nPress Ctrl+C to exit the application\n")
+
+        # Show settings window (non-blocking)
+        flush_print("Opening settings window...")
+        self.settings_gui = SettingsGUI(self.settings_manager, self.on_settings_saved)
+        self.settings_gui.on_close_callback = self.on_settings_closed
+        self.settings_gui.show(blocking=False)
 
     def on_hotkey_pressed(self):
         """Callback when hotkey is pressed."""
@@ -95,12 +145,17 @@ class ArcHelper:
         import cv2
         from datetime import datetime
 
+        print(f"\n{'='*60}")
+        print(f"[HOTKEY] Recognition hotkey triggered!")
+        print(f"{'='*60}")
+
         def process_in_thread():
             try:
                 print("[INFO] Hotkey pressed, capturing...")
 
-                # Capture screen region under mouse cursor
-                image = self.screen_capture.capture_at_cursor()
+                # Capture screen region under mouse cursor with configured size
+                capture_size = self.settings_manager.get_capture_size()
+                image = self.screen_capture.capture_at_cursor(size=capture_size)
 
                 if image is None:
                     print("[WARN] Failed to capture image")
@@ -156,6 +211,7 @@ class ArcHelper:
     def run(self):
         """Start the application."""
         try:
+            # Initialize the application (including settings window)
             self.initialize()
 
             # Keep the application running
@@ -175,6 +231,8 @@ class ArcHelper:
             self.hotkey_manager.cleanup()
         if self.overlay:
             self.overlay.cleanup()
+        if self.settings_gui:
+            self.settings_gui.cleanup()
         print("Goodbye!")
 
 

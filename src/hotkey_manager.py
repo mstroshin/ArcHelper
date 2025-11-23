@@ -26,14 +26,26 @@ class HotkeyManager:
             On Windows, this may require administrator privileges for global hotkey detection.
         """
         try:
+            # First, remove any existing registration for this hotkey
+            try:
+                keyboard.remove_hotkey(hotkey)
+            except:
+                pass
+
             # Register the hotkey with the keyboard library
-            keyboard.add_hotkey(hotkey, callback)
+            keyboard.add_hotkey(hotkey, callback, suppress=False)
             self.registered_hotkeys.append(hotkey)
-            print(f"Registered hotkey: {hotkey}")
+            print(f"✓ Registered hotkey: {hotkey}")
+
+            # Test if hotkey is actually registered
+            if keyboard.is_pressed(hotkey.split('+')[-1]):
+                print(f"  (Key '{hotkey.split('+')[-1]}' is currently being pressed)")
 
         except Exception as e:
-            print(f"Error registering hotkey '{hotkey}': {e}")
-            print("Note: Global hotkeys may require administrator privileges on Windows")
+            print(f"✗ Error registering hotkey '{hotkey}': {e}")
+            print("  Note: Global hotkeys may require administrator privileges on Windows")
+            import traceback
+            traceback.print_exc()
 
     def unregister_hotkey(self, hotkey: str):
         """

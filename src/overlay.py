@@ -5,6 +5,7 @@ from tkinter import ttk
 import threading
 import queue
 from src.config import OVERLAY_WIDTH, OVERLAY_HEIGHT, OVERLAY_ALPHA, DEFAULT_LANGUAGE
+from src.localization import get_text
 
 # Color schemes for different rarities
 RARITY_COLORS = {
@@ -202,7 +203,7 @@ class OverlayUI:
         header.pack(fill=tk.X, padx=0, pady=0)
         header.pack_propagate(False)
 
-        title_label = tk.Label(header, text="ARC HELPER", font=('Segoe UI', 10, 'bold'),
+        title_label = tk.Label(header, text=get_text(self.language, 'app_title'), font=('Segoe UI', 10, 'bold'),
                               fg=COLORS['accent'], bg=COLORS['bg_medium'])
         title_label.pack(side=tk.LEFT, padx=15, pady=10)
 
@@ -305,11 +306,11 @@ class OverlayUI:
         # Properties card
         properties = []
         if 'weightKg' in item_data:
-            properties.append(('⚖', f"{item_data['weightKg']} kg"))
+            properties.append(('⚖', f"{item_data['weightKg']} {get_text(self.language, 'weight')}"))
         if 'stackSize' in item_data:
-            properties.append(('📦', f"Stack: {item_data['stackSize']}"))
+            properties.append(('📦', f"{get_text(self.language, 'stack')}: {item_data['stackSize']}"))
         if 'value' in item_data:
-            properties.append(('💰', f"{item_data['value']} credits"))
+            properties.append(('💰', f"{item_data['value']} {get_text(self.language, 'credits')}"))
 
         if properties:
             prop_frame = self._create_card_frame(content)
@@ -327,26 +328,26 @@ class OverlayUI:
 
         # Crafting recipe
         if 'recipe' in item_data:
-            self._add_material_section(content, "🔨 Crafting Recipe", item_data['recipe'],
+            self._add_material_section(content, get_text(self.language, 'crafting_recipe'), item_data['recipe'],
                                       COLORS['warning'])
 
             if 'craftBench' in item_data:
                 bench_frame = tk.Frame(content, bg=COLORS['bg_light'], bd=0)
                 bench_frame.pack(fill=tk.X, pady=(0, 12), padx=0)
 
-                bench_label = tk.Label(bench_frame, text=f"📍 Requires: {item_data['craftBench']}",
+                bench_label = tk.Label(bench_frame, text=f"📍 {get_text(self.language, 'requires')}: {item_data['craftBench']}",
                                       font=('Segoe UI', 9), fg=COLORS['accent'],
                                       bg=COLORS['bg_light'], padx=12, pady=6)
                 bench_label.pack(anchor='w')
 
         # Recycles into
         if 'recyclesInto' in item_data:
-            self._add_material_section(content, "♻ Recycles Into", item_data['recyclesInto'],
+            self._add_material_section(content, get_text(self.language, 'recycles_into'), item_data['recyclesInto'],
                                       COLORS['success'])
 
         # Salvages into
         if 'salvagesInto' in item_data:
-            self._add_material_section(content, "🔧 Salvages Into", item_data['salvagesInto'],
+            self._add_material_section(content, get_text(self.language, 'salvages_into'), item_data['salvagesInto'],
                                       COLORS['success'])
 
         # Used to craft (reverse mapping)
@@ -355,7 +356,7 @@ class OverlayUI:
             self._add_crafting_uses_section(content, items_using)
 
         # Close instructions
-        close_label = tk.Label(content, text="Press ESC or click anywhere to close",
+        close_label = tk.Label(content, text=get_text(self.language, 'close_instruction'),
                               font=('Segoe UI', 8), fg=COLORS['text_tertiary'],
                               bg=COLORS['bg_dark'])
         close_label.pack(pady=(15, 5))
@@ -423,7 +424,7 @@ class OverlayUI:
         header_frame = tk.Frame(parent, bg=COLORS['bg_dark'])
         header_frame.pack(fill=tk.X, pady=(0, 8))
 
-        header_text = f"🔧 Used to Craft ({len(items_using)} items)"
+        header_text = get_text(self.language, 'used_to_craft_count', count=len(items_using))
         header = tk.Label(header_frame, text=header_text, font=('Segoe UI', 11, 'bold'),
                          fg=COLORS['accent'], bg=COLORS['bg_dark'])
         header.pack(anchor='w')
@@ -455,7 +456,7 @@ class OverlayUI:
             more_frame = tk.Frame(card, bg=COLORS['bg_medium'])
             more_frame.pack(fill=tk.X, pady=(5, 0))
 
-            more_label = tk.Label(more_frame, text=f"... and {len(items_using) - 5} more",
+            more_label = tk.Label(more_frame, text=get_text(self.language, 'and_more', count=len(items_using) - 5),
                                  font=('Segoe UI', 8, 'italic'), fg=COLORS['text_tertiary'],
                                  bg=COLORS['bg_medium'])
             more_label.pack(anchor='w')

@@ -13,7 +13,8 @@
       "Bash(python3:*)",
       "Bash(powershell -Command \"(Get-ChildItem ''Data\\Items\\Images\\*.webp'' | Measure-Object).Count\")",
       "Bash(del test_debug.py)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(C:UsersmstroAppDataLocalMicrosoftWindowsAppspython.exe test_settings_gui.py)"
     ],
     "deny": [],
     "ask": []
