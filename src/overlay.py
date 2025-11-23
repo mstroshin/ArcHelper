@@ -74,6 +74,8 @@ class OverlayUI:
         self._outside_detection_started = False
         # Image cache to avoid reloading from disk
         self._image_cache = {}
+        # Flag to suppress outside-click mass close when explicitly clicking a window's X
+        self._suppress_outside_close = False
 
         # Start the GUI thread
         self._start_gui_thread()
@@ -214,22 +216,26 @@ class OverlayUI:
                 self._outside_detection_started = False
                 return
             try:
-                cursor_x, cursor_y = win32api.GetCursorPos()
-                left_state = win32api.GetAsyncKeyState(win32con.VK_LBUTTON)
-                if left_state & 0x8000:
-                    inside_any = False
-                    for w in self._get_all_windows():
-                        try:
-                            wx = w.winfo_x(); wy = w.winfo_y(); ww = w.winfo_width(); wh = w.winfo_height()
-                            if wx <= cursor_x <= wx + ww and wy <= cursor_y <= wy + wh:
-                                inside_any = True
-                                break
-                        except Exception:
-                            pass
-                    if not inside_any:
-                        self._close_all_windows()
-                        self._outside_detection_started = False
-                        return
+                # Skip one iteration if we purposely clicked a close button
+                if self._suppress_outside_close:
+                    self._suppress_outside_close = False
+                else:
+                    cursor_x, cursor_y = win32api.GetCursorPos()
+                    left_state = win32api.GetAsyncKeyState(win32con.VK_LBUTTON)
+                    if left_state & 0x8000:
+                        inside_any = False
+                        for w in self._get_all_windows():
+                            try:
+                                wx = w.winfo_x(); wy = w.winfo_y(); ww = w.winfo_width(); wh = w.winfo_height()
+                                if wx <= cursor_x <= wx + ww and wy <= cursor_y <= wy + wh:
+                                    inside_any = True
+                                    break
+                            except Exception:
+                                pass
+                        if not inside_any:
+                            self._close_all_windows()
+                            self._outside_detection_started = False
+                            return
             except Exception:
                 pass
             # Continue polling
@@ -271,10 +277,14 @@ class OverlayUI:
                              fg=COLORS['text_secondary'], bg=COLORS['bg_medium'],
                              cursor='hand2')
         close_btn.pack(side=tk.RIGHT, padx=15, pady=10)
-        if win == self.window:
-            close_btn.bind('<Button-1>', lambda e: self._close_window())
-        else:
-            close_btn.bind('<Button-1>', lambda e, w=win: self._destroy_spawned(w))
+        def on_close_click(event, w=win):
+            # Prevent outside click detector from treating this as outside all windows
+            self._suppress_outside_close = True
+            if w == self.window:
+                self._close_window()
+            else:
+                self._destroy_spawned(w)
+        close_btn.bind('<Button-1>', on_close_click)
 
         main_frame = tk.Frame(container, bg=COLORS['bg_dark'])
         main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
