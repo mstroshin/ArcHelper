@@ -94,6 +94,8 @@ class OverlayUI:
                         command, args = self._command_queue.get_nowait()
                         if command == 'show':
                             self._create_overlay(*args, close_existing=True)
+                        elif command == 'loading':
+                            self._create_loading_overlay(close_existing=True)
                         elif command == 'spawn':
                             # args: (item_id,)
                             item_id = args[0]
@@ -133,6 +135,10 @@ class OverlayUI:
             duration: Time in seconds before auto-close (0 = no auto-close, default)
         """
         self._command_queue.put(('show', (item_data, duration)))
+
+    def show_loading(self):
+        """Show an overlay immediately with a loading indicator while recognition runs."""
+        self._command_queue.put(('loading', ()))
 
     def _close_window(self):
         """Close the primary overlay window."""
@@ -185,6 +191,81 @@ class OverlayUI:
         self._create_content(win, item_data)
 
         # Close handlers
+        if close_existing:
+            win.bind('<Escape>', lambda e: self._close_window())
+            win.protocol('WM_DELETE_WINDOW', self._close_window)
+        else:
+            win.bind('<Escape>', lambda e, w=win: self._destroy_spawned(w))
+            win.protocol('WM_DELETE_WINDOW', lambda w=win: self._destroy_spawned(w))
+
+        if WIN32_AVAILABLE:
+            self._start_global_click_outside_detection()
+
+    def _create_loading_overlay(self, close_existing=True):
+        """Create and display a loading overlay while recognition processes."""
+        if close_existing:
+            self._close_window()
+            win = tk.Toplevel(self.root)
+            self.window = win
+        else:
+            win = tk.Toplevel(self.root)
+            self._spawned_windows.append(win)
+
+        win.title("ArcHelper")
+        win.geometry(f"{OVERLAY_WIDTH}x{OVERLAY_HEIGHT}")
+        win.attributes('-topmost', True)
+        win.attributes('-alpha', OVERLAY_ALPHA)
+        win.configure(bg=COLORS['bg_dark'])
+        try:
+            win.attributes('-toolwindow', True)
+        except Exception:
+            pass
+        win.overrideredirect(True)
+
+        self._position_near_cursor(win)
+
+        border_frame = tk.Frame(win, bg=COLORS['accent'], bd=0)
+        border_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+        container = tk.Frame(border_frame, bg=COLORS['bg_dark'], bd=0)
+        container.pack(fill=tk.BOTH, expand=True)
+        header = tk.Frame(container, bg=COLORS['bg_medium'], height=40)
+        header.pack(fill=tk.X, padx=0, pady=0)
+        header.pack_propagate(False)
+        title_label = tk.Label(header, text=get_text(self.language, 'app_title'), font=('Segoe UI', 13, 'bold'),
+                               fg=COLORS['accent'], bg=COLORS['bg_medium'])
+        title_label.pack(side=tk.LEFT, padx=15, pady=10)
+        self._make_draggable(win, header)
+        close_btn = tk.Label(header, text="✕", font=('Arial', 17, 'bold'),
+                             fg=COLORS['text_secondary'], bg=COLORS['bg_medium'],
+                             cursor='hand2')
+        close_btn.pack(side=tk.RIGHT, padx=15, pady=10)
+        def on_close_click(event, w=win):
+            self._suppress_outside_close = True
+            if w == self.window:
+                self._close_window()
+            else:
+                self._destroy_spawned(w)
+        close_btn.bind('<Button-1>', on_close_click)
+
+        main_frame = tk.Frame(container, bg=COLORS['bg_dark'])
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        loading_frame = tk.Frame(main_frame, bg=COLORS['bg_dark'])
+        loading_frame.pack(expand=True)
+        loading_label = tk.Label(loading_frame,
+                                 text=get_text(self.language, 'recognizing'),
+                                 font=('Segoe UI', 16, 'bold'),
+                                 fg=COLORS['accent'], bg=COLORS['bg_dark'])
+        loading_label.pack(pady=(40, 20))
+        try:
+            progress = ttk.Progressbar(loading_frame, mode='indeterminate', length=220)
+            progress.pack(pady=10)
+            progress.start(12)
+        except Exception:
+            pass
+        hint = tk.Label(loading_frame, text=get_text(self.language, 'close_instruction'),
+                        font=('Segoe UI', 11), fg=COLORS['text_tertiary'], bg=COLORS['bg_dark'])
+        hint.pack(pady=(30, 10))
+
         if close_existing:
             win.bind('<Escape>', lambda e: self._close_window())
             win.protocol('WM_DELETE_WINDOW', self._close_window)

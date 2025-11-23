@@ -42,6 +42,9 @@ UI_TEXTS = {
         'error_title': 'Error',
         'error_save_failed': 'Failed to save settings. Please check the console for details.',
         'invalid_settings_title': 'Invalid Settings',
+        # Recognition status
+        'recognizing': 'Recognizing item...',
+        'not_recognized': 'Item not recognized',
     },
     'ru': {
         # Overlay header
@@ -82,6 +85,9 @@ UI_TEXTS = {
         'error_title': 'Ошибка',
         'error_save_failed': 'Не удалось сохранить настройки. Проверьте консоль.',
         'invalid_settings_title': 'Неверные настройки',
+        # Recognition status
+        'recognizing': 'Распознаю предмет...',
+        'not_recognized': 'Предмет не распознан',
     },
     'de': {
         # Overlay header
@@ -122,6 +128,9 @@ UI_TEXTS = {
         'error_title': 'Fehler',
         'error_save_failed': 'Speichern fehlgeschlagen. Bitte Konsole prüfen.',
         'invalid_settings_title': 'Ungültige Einstellungen',
+        # Recognition status
+        'recognizing': 'Gegenstand wird erkannt...',
+        'not_recognized': 'Gegenstand nicht erkannt',
     },
     'fr': {
         # Overlay header
@@ -162,6 +171,9 @@ UI_TEXTS = {
         'error_title': 'Erreur',
         'error_save_failed': 'Échec de la sauvegarde. Vérifiez la console.',
         'invalid_settings_title': 'Paramètres invalides',
+        # Recognition status
+        'recognizing': "Reconnaissance de l'objet...",
+        'not_recognized': "Objet non reconnu",
     },
     'es': {
         # Overlay header
@@ -202,6 +214,9 @@ UI_TEXTS = {
         'error_title': 'Error',
         'error_save_failed': 'Error al guardar. Revise la consola.',
         'invalid_settings_title': 'Configuración inválida',
+        # Recognition status
+        'recognizing': 'Reconociendo objeto...',
+        'not_recognized': 'Objeto no reconocido',
     },
     'pt': {
         # Overlay header
@@ -242,6 +257,9 @@ UI_TEXTS = {
         'error_title': 'Erro',
         'error_save_failed': 'Falha ao salvar. Verifique o console.',
         'invalid_settings_title': 'Configurações inválidas',
+        # Recognition status
+        'recognizing': 'Reconhecendo item...',
+        'not_recognized': 'Item não reconhecido',
     },
     'pl': {
         # Overlay header
@@ -282,6 +300,9 @@ UI_TEXTS = {
         'error_title': 'Błąd',
         'error_save_failed': 'Nie udało się zapisać. Sprawdź konsolę.',
         'invalid_settings_title': 'Nieprawidłowe ustawienia',
+        # Recognition status
+        'recognizing': 'Rozpoznawanie przedmiotu...',
+        'not_recognized': 'Nie rozpoznano przedmiotu',
     },
     'it': {
         # Overlay header
@@ -303,6 +324,9 @@ UI_TEXTS = {
         # Instructions
         'close_instruction': 'Premi ESC o clicca fuori',
         'and_more': '... e altri {count}',
+        # Recognition status
+        'recognizing': 'Riconoscimento oggetto...',
+        'not_recognized': 'Oggetto non riconosciuto',
     },
     'ja': {
         # Overlay header
@@ -324,6 +348,9 @@ UI_TEXTS = {
         # Instructions
         'close_instruction': 'ESCキーまたは外側をクリック',
         'and_more': '... 他{count}個',
+        # Recognition status
+        'recognizing': 'アイテムを認識中...',
+        'not_recognized': 'アイテムを認識できませんでした',
     },
     'zh-CN': {
         # Overlay header
@@ -345,6 +372,9 @@ UI_TEXTS = {
         # Instructions
         'close_instruction': '按ESC或点击外部',
         'and_more': '... 还有{count}个',
+        # Recognition status
+        'recognizing': '正在识别物品...',
+        'not_recognized': '未识别到物品',
     },
     'zh-TW': {
         # Overlay header
@@ -366,6 +396,9 @@ UI_TEXTS = {
         # Instructions
         'close_instruction': '按ESC或點擊外部',
         'and_more': '... 還有{count}個',
+        # Recognition status
+        'recognizing': '正在辨識物品...',
+        'not_recognized': '未辨識到物品',
     },
     'kr': {
         # Overlay header
@@ -387,6 +420,9 @@ UI_TEXTS = {
         # Instructions
         'close_instruction': 'ESC 키 또는 바깥쪽 클릭',
         'and_more': '... 그리고 {count}개 더',
+        # Recognition status
+        'recognizing': '아이템 인식 중...',
+        'not_recognized': '아이템을 인식하지 못했습니다',
     },
 }
 

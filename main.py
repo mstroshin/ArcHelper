@@ -22,6 +22,7 @@ from src.image_recognition import ItemRecognizer
 from src.overlay import OverlayUI
 from src.settings_manager import SettingsManager
 from src.settings_gui import SettingsGUI
+from src.localization import UI_TEXTS, get_text
 
 
 def flush_print(*args, **kwargs):
@@ -149,6 +150,12 @@ class ArcHelper:
         print(f"[HOTKEY] Recognition hotkey triggered!")
         print(f"{'='*60}")
 
+        # Immediately show loading overlay
+        try:
+            self.overlay.show_loading()
+        except Exception:
+            pass
+
         def process_in_thread():
             try:
                 print("[INFO] Hotkey pressed, capturing...")
@@ -159,6 +166,7 @@ class ArcHelper:
 
                 if image is None:
                     print("[WARN] Failed to capture image")
+                    self._show_not_recognized()
                     return
 
                 # Save screenshot to Debug folder
@@ -198,6 +206,7 @@ class ArcHelper:
                             match_item = self.database.get_item(match_id)
                             match_name = match_item['name']['en'] if match_item else match_id
                             print(f"    - {match_name}: {match_score:.2%}")
+                    self._show_not_recognized()
 
             except Exception as e:
                 print(f"[ERROR] Error processing hotkey: {e}")
@@ -207,6 +216,22 @@ class ArcHelper:
         # Run in a separate thread to avoid blocking the hotkey listener
         thread = threading.Thread(target=process_in_thread, daemon=True)
         thread.start()
+
+    def _show_not_recognized(self):
+        """Display an overlay indicating the item was not recognized using localization."""
+        # Build names for all supported languages
+        names = {}
+        for lang in UI_TEXTS.keys():
+            names[lang] = get_text(lang, 'not_recognized')
+        nf = {
+            'id': 'not_found',
+            'name': names,
+            'rarity': 'common'
+        }
+        try:
+            self.overlay.show(nf, duration=6)
+        except Exception:
+            pass
 
     def run(self):
         """Start the application."""
