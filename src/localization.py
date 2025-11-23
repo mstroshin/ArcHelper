@@ -15,7 +15,8 @@ UI_TEXTS = {
         'crafting_recipe': '🔨 Crafting Recipe',
         'requires': 'Requires',
         'recycles_into': '♻ Recycles Into',
-        'salvages_into': '🔧 Salvages Into',
+        'recycles_into': '♻ Recycles Into (at base)',
+        'salvages_into': '🔧 Salvages Into (in combat)',
         'used_to_craft': '🔧 Used to Craft',
         'used_to_craft_count': '🔧 Used to Craft ({count} items)',
 
@@ -54,8 +55,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 Рецепт крафта',
         'requires': 'Требуется',
-        'recycles_into': '♻ Переработка',
-        'salvages_into': '🔧 Разборка',
+        'recycles_into': '♻ Переработка (на базе)',
+        'salvages_into': '🔧 Разборка (в бою)',
         'used_to_craft': '🔧 Используется для крафта',
         'used_to_craft_count': '🔧 Используется для крафта ({count} предм.)',
 
@@ -94,8 +95,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 Herstellungsrezept',
         'requires': 'Benötigt',
-        'recycles_into': '♻ Recycelt zu',
-        'salvages_into': '🔧 Abbaut zu',
+        'recycles_into': '♻ Recycelt zu (in der Basis)',
+        'salvages_into': '🔧 Abbaut zu (im Kampf)',
         'used_to_craft': '🔧 Verwendet für',
         'used_to_craft_count': '🔧 Verwendet für ({count} Gegenstände)',
 
@@ -134,8 +135,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 Recette de fabrication',
         'requires': 'Nécessite',
-        'recycles_into': '♻ Recyclage',
-        'salvages_into': '🔧 Récupération',
+        'recycles_into': '♻ Recyclage (à la base)',
+        'salvages_into': '🔧 Récupération (en combat)',
         'used_to_craft': '🔧 Utilisé pour fabriquer',
         'used_to_craft_count': '🔧 Utilisé pour fabriquer ({count} objets)',
 
@@ -174,8 +175,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 Receta de fabricación',
         'requires': 'Requiere',
-        'recycles_into': '♻ Se recicla en',
-        'salvages_into': '🔧 Se desmonta en',
+        'recycles_into': '♻ Se recicla en (en base)',
+        'salvages_into': '🔧 Se desmonta en (en combate)',
         'used_to_craft': '🔧 Usado para fabricar',
         'used_to_craft_count': '🔧 Usado para fabricar ({count} objetos)',
 
@@ -214,8 +215,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 Receita de fabricação',
         'requires': 'Requer',
-        'recycles_into': '♻ Recicla em',
-        'salvages_into': '🔧 Desmonta em',
+        'recycles_into': '♻ Recicla em (na base)',
+        'salvages_into': '🔧 Desmonta em (em combate)',
         'used_to_craft': '🔧 Usado para fabricar',
         'used_to_craft_count': '🔧 Usado para fabricar ({count} itens)',
 
@@ -254,8 +255,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 Przepis na wytworzenie',
         'requires': 'Wymaga',
-        'recycles_into': '♻ Recykling na',
-        'salvages_into': '🔧 Rozbieranie na',
+        'recycles_into': '♻ Recykling na (w bazie)',
+        'salvages_into': '🔧 Rozbieranie na (w walce)',
         'used_to_craft': '🔧 Używane do wytworzenia',
         'used_to_craft_count': '🔧 Używane do wytworzenia ({count} przedmiotów)',
 
@@ -294,8 +295,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 Ricetta di fabbricazione',
         'requires': 'Richiede',
-        'recycles_into': '♻ Ricicla in',
-        'salvages_into': '🔧 Smonta in',
+        'recycles_into': '♻ Ricicla in (alla base)',
+        'salvages_into': '🔧 Smonta in (in combattimento)',
         'used_to_craft': '🔧 Usato per fabbricare',
         'used_to_craft_count': '🔧 Usato per fabbricare ({count} oggetti)',
 
@@ -315,8 +316,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 クラフトレシピ',
         'requires': '必要',
-        'recycles_into': '♻ リサイクル',
-        'salvages_into': '🔧 解体',
+        'recycles_into': '♻ リサイクル (基地で)',
+        'salvages_into': '🔧 解体 (戦闘中)',
         'used_to_craft': '🔧 クラフトに使用',
         'used_to_craft_count': '🔧 クラフトに使用 ({count}個)',
 
@@ -336,8 +337,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 制作配方',
         'requires': '需要',
-        'recycles_into': '♻ 回收为',
-        'salvages_into': '🔧 拆解为',
+        'recycles_into': '♻ 回收为 (在基地)',
+        'salvages_into': '🔧 拆解为 (战斗中)',
         'used_to_craft': '🔧 用于制作',
         'used_to_craft_count': '🔧 用于制作 ({count}个物品)',
 
@@ -357,8 +358,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 製作配方',
         'requires': '需要',
-        'recycles_into': '♻ 回收為',
-        'salvages_into': '🔧 拆解為',
+        'recycles_into': '♻ 回收為 (在基地)',
+        'salvages_into': '🔧 拆解為 (戰鬥中)',
         'used_to_craft': '🔧 用於製作',
         'used_to_craft_count': '🔧 用於製作 ({count}個物品)',
 
@@ -378,8 +379,8 @@ UI_TEXTS = {
         # Sections
         'crafting_recipe': '🔨 제작 레시피',
         'requires': '필요',
-        'recycles_into': '♻ 재활용',
-        'salvages_into': '🔧 분해',
+        'recycles_into': '♻ 재활용 (기지에서)',
+        'salvages_into': '🔧 분해 (전투 중)',
         'used_to_craft': '🔧 제작에 사용',
         'used_to_craft_count': '🔧 제작에 사용 ({count}개 아이템)',
 
