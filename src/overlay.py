@@ -359,8 +359,8 @@ class OverlayUI:
                                      fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
                 text_label.pack(side=tk.LEFT)
 
-        # Crafting recipe
-        if 'recipe' in item_data:
+        # Crafting recipe (skip if empty dict or no entries > 0)
+        if 'recipe' in item_data and item_data['recipe'] and len(item_data['recipe']) > 0:
             self._add_material_section(content, get_text(self.language, 'crafting_recipe'), item_data['recipe'],
                                       COLORS['warning'])
 
@@ -373,13 +373,13 @@ class OverlayUI:
                                       bg=COLORS['bg_light'], padx=12, pady=6)
                 bench_label.pack(anchor='w')
 
-        # Recycles into
-        if 'recyclesInto' in item_data:
+        # Recycles into (skip if empty)
+        if 'recyclesInto' in item_data and item_data['recyclesInto'] and len(item_data['recyclesInto']) > 0:
             self._add_material_section(content, get_text(self.language, 'recycles_into'), item_data['recyclesInto'],
                                       COLORS['success'])
 
-        # Salvages into
-        if 'salvagesInto' in item_data:
+        # Salvages into (skip if empty)
+        if 'salvagesInto' in item_data and item_data['salvagesInto'] and len(item_data['salvagesInto']) > 0:
             self._add_material_section(content, get_text(self.language, 'salvages_into'), item_data['salvagesInto'],
                                       COLORS['success'])
 
@@ -431,6 +431,9 @@ class OverlayUI:
 
     def _add_material_section(self, parent, title, materials_dict, accent_color):
         """Add a materials section with modern styling."""
+        # Skip entirely if materials_dict is falsy or has no entries
+        if not materials_dict or len(materials_dict) == 0:
+            return
         # Section header
         header_frame = tk.Frame(parent, bg=COLORS['bg_dark'])
         header_frame.pack(fill=tk.X, pady=(0, 8))
