@@ -312,7 +312,13 @@ class OverlayUI:
                 scrollbar_canvas.create_rectangle(1, bar_y, 7, bar_y + bar_height,
                                                   fill=COLORS['accent_dim'], outline='')
         scrollable_frame.bind("<Configure>", on_frame_configure)
-        canvas.bind_all("<MouseWheel>", on_mousewheel)
+        # Bind mouse wheel to all relevant widgets within this overlay so scrolling works regardless of focus.
+        # Each overlay gets its own closure with its canvas reference.
+        for _w in (win, border_frame, container, main_frame, canvas, scrollable_frame, scrollbar_frame):
+            try:
+                _w.bind("<MouseWheel>", on_mousewheel)
+            except Exception:
+                pass
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         self._add_item_info(scrollable_frame, item_data)
         canvas.pack(side="left", fill="both", expand=True)
