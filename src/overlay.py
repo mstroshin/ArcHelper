@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import ttk
 import threading
 import queue
+import os
+from functools import lru_cache
 from src.config import OVERLAY_WIDTH, OVERLAY_HEIGHT, OVERLAY_ALPHA, DEFAULT_LANGUAGE
 from src.localization import get_text
 
@@ -70,6 +72,8 @@ class OverlayUI:
         self._running = False
         self._gui_thread = None
         self._outside_detection_started = False
+        # Image cache to avoid reloading from disk
+        self._image_cache = {}
 
         # Start the GUI thread
         self._start_gui_thread()
@@ -321,6 +325,18 @@ class OverlayUI:
                              wraplength=OVERLAY_WIDTH-60, justify='left')
         name_label.pack(anchor='w', pady=(0, 8))
 
+        # Item image (if available)
+        img = self._load_item_image(item_data.get('id'))
+        if img:
+            img_label = tk.Label(content, image=img, bg=COLORS['bg_dark'])
+            img_label.image = img  # keep reference
+            img_label.pack(anchor='w', pady=(0, 12))
+        else:
+            # Optional subtle placeholder if no image found
+            placeholder = tk.Label(content, text='[no image]', font=('Segoe UI', 10, 'italic'),
+                                   fg=COLORS['text_tertiary'], bg=COLORS['bg_dark'])
+            placeholder.pack(anchor='w', pady=(0, 12))
+
         # Item type and rarity badge
         info_frame = tk.Frame(content, bg=COLORS['bg_dark'])
         info_frame.pack(anchor='w', pady=(0, 12))
@@ -544,3 +560,49 @@ class OverlayUI:
             self._destroy_spawned(w)
         if self.window:
             self._close_window()
+
+    def _load_item_image(self, item_id):
+        """Load and cache a PhotoImage for the given item id.
+
+        Lookup order in Data/Items/Images/:
+            <item_id>.webp  (preferred)
+            <item_id>.png
+            <item_id>.jpg
+
+        WEBP requires Pillow. PNG/JPG fallback to Pillow; PNG may load via tk.PhotoImage.
+        Images are thumbnailed to max 200x200 preserving aspect ratio.
+        Returns PhotoImage or None if not found/failed.
+        """
+        if not item_id:
+            return None
+        if item_id in self._image_cache:
+            return self._image_cache[item_id]
+        try:
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+            images_dir = os.path.join(base_dir, 'Data', 'Items', 'Images')
+            candidates = [
+                os.path.join(images_dir, f'{item_id}.webp'),
+                os.path.join(images_dir, f'{item_id}.png'),
+                os.path.join(images_dir, f'{item_id}.jpg'),
+            ]
+            img_path = next((p for p in candidates if os.path.isfile(p)), None)
+            if not img_path:
+                return None
+            photo = None
+            try:
+                from PIL import Image, ImageTk  # type: ignore
+                im = Image.open(img_path)
+                # Resize to fit overlay nicely (max 200x200 preserving aspect)
+                im.thumbnail((200, 200), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(im)
+            except Exception:
+                try:
+                    # Fallback: direct PhotoImage (only works for GIF/PNG)
+                    photo = tk.PhotoImage(file=img_path)
+                except Exception:
+                    photo = None
+            if photo:
+                self._image_cache[item_id] = photo
+            return photo
+        except Exception:
+            return None
