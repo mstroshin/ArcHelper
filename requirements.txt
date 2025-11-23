@@ -1,0 +1,14 @@
+# Image processing and recognition
+opencv-python>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# Screen capture
+mss>=9.0.0
+
+# Global hotkey detection
+keyboard>=0.13.5
+
+# GUI overlay (using tkinter - comes with Python, no install needed)
+# For better transparency support on Windows:
+pywin32>=306
