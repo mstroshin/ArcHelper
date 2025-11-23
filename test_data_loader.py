@@ -3,8 +3,14 @@
 Test script for verifying item data loading.
 """
 
+import sys
 from pathlib import Path
 from src.data_loader import ItemDatabase
+
+# Fix encoding for Windows console
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 
 def test_data_loader():

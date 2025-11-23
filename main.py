@@ -7,7 +7,12 @@ image recognition, and overlay display.
 """
 
 import sys
+import io
 from pathlib import Path
+
+# Fix encoding for Windows console
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 from src.data_loader import ItemDatabase
 from src.hotkey_manager import HotkeyManager
@@ -29,57 +34,106 @@ class ArcHelper:
 
     def initialize(self):
         """Initialize all components."""
-        print("Initializing ArcHelperPy...")
+        print("\n" + "=" * 60)
+        print("ArcHelperPy - Initializing...")
+        print("=" * 60 + "\n")
+
+        # Check admin privileges
+        print("Checking administrator privileges...")
+        temp_hotkey = HotkeyManager()
+        temp_hotkey.check_admin_privileges()
+        temp_hotkey.cleanup()
 
         # Load item database
-        print("Loading item database...")
+        print("\nLoading item database...")
         self.database = ItemDatabase(self.data_dir)
         self.database.load_all_items()
-        print(f"Loaded {len(self.database.items)} items")
+        print(f"✓ Loaded {len(self.database.items)} items")
 
         # Initialize image recognizer
-        print("Loading item icons for recognition...")
+        print("\nLoading item icons for recognition...")
         self.recognizer = ItemRecognizer(self.data_dir, self.database)
         self.recognizer.load_templates()
-        print(f"Loaded {len(self.recognizer.templates)} icon templates")
+        print(f"✓ Loaded {len(self.recognizer.templates)} icon templates")
 
         # Initialize screen capture
+        print("\nInitializing screen capture...")
         self.screen_capture = ScreenCapture()
+        print("✓ Screen capture ready")
 
         # Initialize overlay UI
+        print("\nInitializing overlay UI...")
         self.overlay = OverlayUI(self.database)
+        print("✓ Overlay UI ready")
 
         # Setup hotkey manager
+        print("\nSetting up hotkey manager...")
         self.hotkey_manager = HotkeyManager()
         self.hotkey_manager.register_hotkey('ctrl+shift+i', self.on_hotkey_pressed)
+        print("✓ Hotkey registered")
 
-        print("Initialization complete!")
-        print("Press Ctrl+Shift+I over an item to view its information")
-        print("Press Ctrl+C to exit\n")
+        print("\n" + "=" * 60)
+        print("✓ Initialization complete!")
+        print("=" * 60)
+        print("\n📋 Usage:")
+        print("  1. Hover your cursor over an item in-game")
+        print("  2. Press Ctrl+Shift+I to identify the item")
+        print("  3. View item information in the overlay")
+        print("  4. Press ESC or click to close the overlay")
+        print("\nPress Ctrl+C to exit the application\n")
 
     def on_hotkey_pressed(self):
         """Callback when hotkey is pressed."""
-        try:
-            # Capture screen region under mouse cursor
-            image = self.screen_capture.capture_at_cursor()
+        import threading
 
-            if image is None:
-                return
+        def process_in_thread():
+            try:
+                print("[INFO] Hotkey pressed, capturing...")
 
-            # Recognize item
-            item_id = self.recognizer.recognize(image)
+                # Capture screen region under mouse cursor
+                image = self.screen_capture.capture_at_cursor()
 
-            if item_id:
-                # Get item data
-                item_data = self.database.get_item(item_id)
+                if image is None:
+                    print("[WARN] Failed to capture image")
+                    return
 
-                # Show overlay with item information
-                self.overlay.show(item_data)
-            else:
-                print("No item recognized")
+                print("[INFO] Recognizing item...")
 
-        except Exception as e:
-            print(f"Error processing hotkey: {e}")
+                # Recognize item
+                result = self.recognizer.recognize_with_score(image)
+
+                if result:
+                    item_id, score = result
+                    # Get item data
+                    item_data = self.database.get_item(item_id)
+
+                    if item_data:
+                        print(f"[INFO] Recognized: {item_data['name']['en']} (confidence: {score:.2%})")
+
+                        # Show overlay with item information (runs in thread to avoid blocking)
+                        self.overlay.show(item_data, duration=10)
+                    else:
+                        print(f"[WARN] Item data not found for ID: {item_id}")
+                else:
+                    print("[WARN] No item recognized (low confidence)")
+
+                    # Optionally show top matches for debugging
+                    top_matches = self.recognizer.get_top_matches(image, 3)
+                    if top_matches:
+                        print("  Top matches:")
+                        for match_id, match_score in top_matches:
+                            match_item = self.database.get_item(match_id)
+                            match_name = match_item['name']['en'] if match_item else match_id
+                            print(f"    - {match_name}: {match_score:.2%}")
+
+            except Exception as e:
+                print(f"[ERROR] Error processing hotkey: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # Run in a separate thread to avoid blocking the hotkey listener
+        thread = threading.Thread(target=process_in_thread, daemon=True)
+        thread.start()
 
     def run(self):
         """Start the application."""
