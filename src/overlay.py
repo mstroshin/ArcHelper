@@ -44,7 +44,11 @@ except ImportError:
 
 
 class OverlayUI:
-    """Manages the overlay window for displaying item information using Tkinter."""
+    """Manages overlay windows for displaying item information using Tkinter.
+
+    Supports a primary overlay (opened via show) and additional spawned overlays
+    created when clicking items/materials inside any overlay window.
+    """
 
     def __init__(self, database, language=DEFAULT_LANGUAGE):
         """
@@ -57,11 +61,15 @@ class OverlayUI:
         self.database = database
         self.language = language
         self.root = None
+        # Primary window (opened via show)
         self.window = None
+        # Additional spawned windows
+        self._spawned_windows = []
         self.auto_close_timer = None
         self._command_queue = queue.Queue()
         self._running = False
         self._gui_thread = None
+        self._outside_detection_started = False
 
         # Start the GUI thread
         self._start_gui_thread()
@@ -79,7 +87,13 @@ class OverlayUI:
                     while not self._command_queue.empty():
                         command, args = self._command_queue.get_nowait()
                         if command == 'show':
-                            self._create_overlay(*args)
+                            self._create_overlay(*args, close_existing=True)
+                        elif command == 'spawn':
+                            # args: (item_id,)
+                            item_id = args[0]
+                            item_data = self.database.get_item(item_id)
+                            if item_data:
+                                self._create_overlay(item_data, 0, close_existing=False)
                         elif command == 'close':
                             self._close_window()
                         elif command == 'quit':
@@ -115,188 +129,179 @@ class OverlayUI:
         self._command_queue.put(('show', (item_data, duration)))
 
     def _close_window(self):
-        """Close the current overlay window."""
+        """Close the primary overlay window."""
         if self.window:
             try:
                 if self.auto_close_timer:
                     self.root.after_cancel(self.auto_close_timer)
                     self.auto_close_timer = None
                 self.window.destroy()
-            except:
+            except Exception:
                 pass
             self.window = None
 
-    def _create_overlay(self, item_data, _duration):
-        """Create and display the overlay window."""
-        # Close existing window if any
-        self._close_window()
-
-        # Create the window as Toplevel (not a new Tk instance)
-        self.window = tk.Toplevel(self.root)
-        self.window.title("ArcHelper")
-
-        # Window configuration
-        self.window.geometry(f"{OVERLAY_WIDTH}x{OVERLAY_HEIGHT}")
-        self.window.attributes('-topmost', True)  # Always on top
-        self.window.attributes('-alpha', OVERLAY_ALPHA)  # Transparency
-        self.window.configure(bg=COLORS['bg_dark'])
-
-        # Try to make it tool window style (no taskbar icon)
+    def _destroy_spawned(self, win):
+        """Destroy a spawned window and remove it from tracking."""
         try:
-            self.window.attributes('-toolwindow', True)
-        except:
+            win.destroy()
+        except Exception:
             pass
+        self._spawned_windows = [w for w in self._spawned_windows if w != win]
 
-        # Remove window decorations for modern look
-        self.window.overrideredirect(True)
+    def _create_overlay(self, item_data, _duration, close_existing=True):
+        """Create and display an overlay window.
 
-        # Position near cursor
-        self._position_near_cursor()
+        Args:
+            item_data: item data dict
+            _duration: (unused) reserved for future auto-close support
+            close_existing: if True, replaces primary window; else spawns new window
+        """
+        if close_existing:
+            self._close_window()
+            win = tk.Toplevel(self.root)
+            self.window = win
+        else:
+            win = tk.Toplevel(self.root)
+            self._spawned_windows.append(win)
 
-        # Create scrollable content
-        self._create_content(item_data)
+        win.title("ArcHelper")
+        win.geometry(f"{OVERLAY_WIDTH}x{OVERLAY_HEIGHT}")
+        win.attributes('-topmost', True)
+        win.attributes('-alpha', OVERLAY_ALPHA)
+        win.configure(bg=COLORS['bg_dark'])
+        try:
+            win.attributes('-toolwindow', True)
+        except Exception:
+            pass
+        win.overrideredirect(True)
 
-        # Bind close events
-        self.window.bind('<Escape>', lambda e: self._close_window())
+        self._position_near_cursor(win)
+        self._create_content(win, item_data)
 
-        # Setup click-outside detection
+        # Close handlers
+        if close_existing:
+            win.bind('<Escape>', lambda e: self._close_window())
+            win.protocol('WM_DELETE_WINDOW', self._close_window)
+        else:
+            win.bind('<Escape>', lambda e, w=win: self._destroy_spawned(w))
+            win.protocol('WM_DELETE_WINDOW', lambda w=win: self._destroy_spawned(w))
+
         if WIN32_AVAILABLE:
-            self._setup_click_outside_detection()
+            self._start_global_click_outside_detection()
 
-    def _setup_click_outside_detection(self):
-        """Setup detection for clicks outside the window."""
-        def check_click_outside():
-            if not self.window:
+    def _get_all_windows(self):
+        """Return list of all current overlay windows."""
+        return [w for w in ([self.window] + self._spawned_windows) if w]
+
+    def _close_all_windows(self):
+        """Close all overlay windows (primary and spawned)."""
+        self._close_window()
+        for w in list(self._spawned_windows):
+            self._destroy_spawned(w)
+
+    def _start_global_click_outside_detection(self):
+        """Start a single detector that closes all overlays when clicking outside every window."""
+        if self._outside_detection_started:
+            return
+        self._outside_detection_started = True
+
+        def check():
+            if not self._get_all_windows():
+                self._outside_detection_started = False
                 return
-
             try:
-                # Get current cursor position
                 cursor_x, cursor_y = win32api.GetCursorPos()
-
-                # Get window position and size
-                win_x = self.window.winfo_x()
-                win_y = self.window.winfo_y()
-                win_width = self.window.winfo_width()
-                win_height = self.window.winfo_height()
-
-                # Check if left mouse button is pressed
-                left_button_state = win32api.GetAsyncKeyState(win32con.VK_LBUTTON)
-
-                # If button is pressed and cursor is outside window bounds
-                if left_button_state & 0x8000:  # Button is currently pressed
-                    if not (win_x <= cursor_x <= win_x + win_width and
-                           win_y <= cursor_y <= win_y + win_height):
-                        self._close_window()
+                left_state = win32api.GetAsyncKeyState(win32con.VK_LBUTTON)
+                if left_state & 0x8000:
+                    inside_any = False
+                    for w in self._get_all_windows():
+                        try:
+                            wx = w.winfo_x(); wy = w.winfo_y(); ww = w.winfo_width(); wh = w.winfo_height()
+                            if wx <= cursor_x <= wx + ww and wy <= cursor_y <= wy + wh:
+                                inside_any = True
+                                break
+                        except Exception:
+                            pass
+                    if not inside_any:
+                        self._close_all_windows()
+                        self._outside_detection_started = False
                         return
+            except Exception:
+                pass
+            # Continue polling
+            self.root.after(50, check)
 
-                # Continue checking
-                if self.window:
-                    self.window.after(50, check_click_outside)
+        self.root.after(100, check)
 
+    def _position_near_cursor(self, win):
+        """Position a window near the cursor."""
+        if WIN32_AVAILABLE:
+            try:
+                cursor_x, cursor_y = win32api.GetCursorPos()
+                x = cursor_x + 20
+                y = cursor_y + 20
+                screen_width = win.winfo_screenwidth()
+                screen_height = win.winfo_screenheight()
+                if x + OVERLAY_WIDTH > screen_width:
+                    x = screen_width - OVERLAY_WIDTH - 10
+                if y + OVERLAY_HEIGHT > screen_height:
+                    y = screen_height - OVERLAY_HEIGHT - 10
+                win.geometry(f"+{x}+{y}")
             except Exception:
                 pass
 
-        # Start checking after a short delay
-        self.window.after(100, check_click_outside)
-
-    def _position_near_cursor(self):
-        """Position the window near the cursor."""
-        if WIN32_AVAILABLE:
-            try:
-                cursor_x, cursor_y = win32api.GetCursorPos()
-                # Offset the window slightly from cursor
-                x = cursor_x + 20
-                y = cursor_y + 20
-
-                # Ensure window stays on screen
-                screen_width = self.window.winfo_screenwidth()
-                screen_height = self.window.winfo_screenheight()
-
-                if x + OVERLAY_WIDTH > screen_width:
-                    x = screen_width - OVERLAY_WIDTH - 10
-
-                if y + OVERLAY_HEIGHT > screen_height:
-                    y = screen_height - OVERLAY_HEIGHT - 10
-
-                self.window.geometry(f"+{x}+{y}")
-            except Exception as e:
-                print(f"Error positioning window: {e}")
-
-    def _create_content(self, item_data):
-        """Create the content for the overlay window."""
-
-        # Border frame for modern look
-        border_frame = tk.Frame(self.window, bg=COLORS['accent'], bd=0)
+    def _create_content(self, win, item_data):
+        """Create the content for a given overlay window."""
+        border_frame = tk.Frame(win, bg=COLORS['accent'], bd=0)
         border_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-
-        # Main container
         container = tk.Frame(border_frame, bg=COLORS['bg_dark'], bd=0)
         container.pack(fill=tk.BOTH, expand=True)
-
-        # Header with close button
         header = tk.Frame(container, bg=COLORS['bg_medium'], height=40)
         header.pack(fill=tk.X, padx=0, pady=0)
         header.pack_propagate(False)
-
         title_label = tk.Label(header, text=get_text(self.language, 'app_title'), font=('Segoe UI', 13, 'bold'),
-                              fg=COLORS['accent'], bg=COLORS['bg_medium'])
+                               fg=COLORS['accent'], bg=COLORS['bg_medium'])
         title_label.pack(side=tk.LEFT, padx=15, pady=10)
-
+        # Close button chooses correct close behavior
         close_btn = tk.Label(header, text="✕", font=('Arial', 17, 'bold'),
-                            fg=COLORS['text_secondary'], bg=COLORS['bg_medium'],
-                            cursor='hand2')
+                             fg=COLORS['text_secondary'], bg=COLORS['bg_medium'],
+                             cursor='hand2')
         close_btn.pack(side=tk.RIGHT, padx=15, pady=10)
-        close_btn.bind('<Button-1>', lambda e: self._close_window())
+        if win == self.window:
+            close_btn.bind('<Button-1>', lambda e: self._close_window())
+        else:
+            close_btn.bind('<Button-1>', lambda e, w=win: self._destroy_spawned(w))
 
-        # Main content frame with padding
         main_frame = tk.Frame(container, bg=COLORS['bg_dark'])
         main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
-
-        # Create scrollable canvas with modern styling
         canvas = tk.Canvas(main_frame, bg=COLORS['bg_dark'], highlightthickness=0, bd=0)
-
-        # Custom styled scrollbar
         scrollbar_frame = tk.Frame(main_frame, bg=COLORS['bg_medium'], width=8)
-        scrollbar_canvas = tk.Canvas(scrollbar_frame, bg=COLORS['bg_medium'],
-                                     highlightthickness=0, width=8)
-
+        scrollbar_canvas = tk.Canvas(scrollbar_frame, bg=COLORS['bg_medium'], highlightthickness=0, width=8)
         scrollable_frame = tk.Frame(canvas, bg=COLORS['bg_dark'])
 
         def on_frame_configure(event):
             canvas.configure(scrollregion=canvas.bbox("all"))
-            # Update scrollbar
             update_scrollbar()
-
         def on_mousewheel(event):
             canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
             update_scrollbar()
-
         def update_scrollbar():
-            # Custom scrollbar drawing
             scrollbar_canvas.delete("all")
             if canvas.winfo_height() > 0:
                 view = canvas.yview()
                 total_height = scrollbar_canvas.winfo_height()
                 bar_height = max(20, total_height * (view[1] - view[0]))
                 bar_y = total_height * view[0]
-
                 scrollbar_canvas.create_rectangle(1, bar_y, 7, bar_y + bar_height,
                                                   fill=COLORS['accent_dim'], outline='')
-
         scrollable_frame.bind("<Configure>", on_frame_configure)
         canvas.bind_all("<MouseWheel>", on_mousewheel)
-
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-
-        # Add content to scrollable frame
         self._add_item_info(scrollable_frame, item_data)
-
-        # Pack components
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar_frame.pack(side="right", fill="y")
         scrollbar_canvas.pack(fill="both", expand=True)
-
-        self.window.after(100, update_scrollbar)
+        win.after(100, update_scrollbar)
 
     def _add_item_info(self, parent, item_data):
         """Add item information to the frame."""
@@ -453,7 +458,7 @@ class OverlayUI:
             text_contrast = self._get_contrasting_text_color(rarity_color)
 
             # Material row
-            mat_row = tk.Frame(card, bg=COLORS['bg_medium'])
+            mat_row = tk.Frame(card, bg=COLORS['bg_medium'], cursor='hand2')
             mat_row.pack(fill=tk.X, pady=3)
 
             # Bullet point colored by rarity
@@ -471,6 +476,15 @@ class OverlayUI:
                                      fg=text_contrast, bg=rarity_color,
                                      padx=6, pady=1)
             amount_badge.pack(side=tk.RIGHT)
+
+            # Click binding to spawn new overlay if item exists
+            if material_item:
+                def _spawn(mid=material_id):
+                    self._command_queue.put(('spawn', (mid,)))
+                mat_row.bind('<Button-1>', lambda e, f=_spawn: f())
+                bullet.bind('<Button-1>', lambda e, f=_spawn: f())
+                name_label.bind('<Button-1>', lambda e, f=_spawn: f())
+                amount_badge.bind('<Button-1>', lambda e, f=_spawn: f())
 
     def _add_crafting_uses_section(self, parent, items_using):
         """Add 'Used to Craft' section."""
@@ -493,7 +507,7 @@ class OverlayUI:
             contrast = self._get_contrasting_text_color(rarity_color)
 
             # Item row
-            item_row = tk.Frame(card, bg=COLORS['bg_medium'])
+            item_row = tk.Frame(card, bg=COLORS['bg_medium'], cursor='hand2')
             item_row.pack(fill=tk.X, pady=3)
 
             # Arrow colored by rarity
@@ -511,9 +525,22 @@ class OverlayUI:
                              fg=contrast, bg=rarity_color, padx=4, pady=1)
             badge.pack(side=tk.RIGHT, padx=(8, 0))
 
+            def _spawn_used(iid=used_item['id']):
+                self._command_queue.put(('spawn', (iid,)))
+            # Bind clicks
+            item_row.bind('<Button-1>', lambda e, f=_spawn_used: f())
+            arrow.bind('<Button-1>', lambda e, f=_spawn_used: f())
+            name_label.bind('<Button-1>', lambda e, f=_spawn_used: f())
+            badge.bind('<Button-1>', lambda e, f=_spawn_used: f())
+
 
     def cleanup(self):
         """Cleanup overlay resources."""
         self._command_queue.put(('quit', ()))
         if self._gui_thread and self._gui_thread.is_alive():
             self._gui_thread.join(timeout=2)
+        # Ensure all spawned windows are closed
+        for w in list(self._spawned_windows):
+            self._destroy_spawned(w)
+        if self.window:
+            self._close_window()
