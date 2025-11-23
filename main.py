@@ -10,15 +10,22 @@ import sys
 import io
 from pathlib import Path
 
-# Fix encoding for Windows console
+# Fix encoding for Windows console and disable buffering
 if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', line_buffering=True)
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', line_buffering=True)
 
 from src.data_loader import ItemDatabase
 from src.hotkey_manager import HotkeyManager
 from src.screen_capture import ScreenCapture
 from src.image_recognition import ItemRecognizer
 from src.overlay import OverlayUI
+
+
+def flush_print(*args, **kwargs):
+    """Print with immediate flush to ensure output appears in console."""
+    print(*args, **kwargs)
+    sys.stdout.flush()
 
 
 class ArcHelper:
@@ -34,53 +41,53 @@ class ArcHelper:
 
     def initialize(self):
         """Initialize all components."""
-        print("\n" + "=" * 60)
-        print("ArcHelperPy - Initializing...")
-        print("=" * 60 + "\n")
+        flush_print("\n" + "=" * 60)
+        flush_print("ArcHelperPy - Initializing...")
+        flush_print("=" * 60 + "\n")
 
         # Check admin privileges
-        print("Checking administrator privileges...")
+        flush_print("Checking administrator privileges...")
         temp_hotkey = HotkeyManager()
         temp_hotkey.check_admin_privileges()
         temp_hotkey.cleanup()
 
         # Load item database
-        print("\nLoading item database...")
+        flush_print("\nLoading item database...")
         self.database = ItemDatabase(self.data_dir)
         self.database.load_all_items()
-        print(f"✓ Loaded {len(self.database.items)} items")
+        flush_print(f"✓ Loaded {len(self.database.items)} items")
 
         # Initialize image recognizer
-        print("\nLoading item icons for recognition...")
+        flush_print("\nLoading item icons for recognition...")
         self.recognizer = ItemRecognizer(self.data_dir, self.database)
         self.recognizer.load_templates()
-        print(f"✓ Loaded {len(self.recognizer.templates)} icon templates")
+        flush_print(f"✓ Loaded {len(self.recognizer.templates)} icon templates")
 
         # Initialize screen capture
-        print("\nInitializing screen capture...")
+        flush_print("\nInitializing screen capture...")
         self.screen_capture = ScreenCapture()
-        print("✓ Screen capture ready")
+        flush_print("✓ Screen capture ready")
 
         # Initialize overlay UI
-        print("\nInitializing overlay UI...")
+        flush_print("\nInitializing overlay UI...")
         self.overlay = OverlayUI(self.database)
-        print("✓ Overlay UI ready")
+        flush_print("✓ Overlay UI ready")
 
         # Setup hotkey manager
-        print("\nSetting up hotkey manager...")
+        flush_print("\nSetting up hotkey manager...")
         self.hotkey_manager = HotkeyManager()
         self.hotkey_manager.register_hotkey('ctrl+shift+i', self.on_hotkey_pressed)
-        print("✓ Hotkey registered")
+        flush_print("✓ Hotkey registered")
 
-        print("\n" + "=" * 60)
-        print("✓ Initialization complete!")
-        print("=" * 60)
-        print("\n📋 Usage:")
-        print("  1. Hover your cursor over an item in-game")
-        print("  2. Press Ctrl+Shift+I to identify the item")
-        print("  3. View item information in the overlay")
-        print("  4. Press ESC or click to close the overlay")
-        print("\nPress Ctrl+C to exit the application\n")
+        flush_print("\n" + "=" * 60)
+        flush_print("✓ Initialization complete!")
+        flush_print("=" * 60)
+        flush_print("\n📋 Usage:")
+        flush_print("  1. Hover your cursor over an item in-game")
+        flush_print("  2. Press Ctrl+Shift+I to identify the item")
+        flush_print("  3. View item information in the overlay")
+        flush_print("  4. Press ESC or click to close the overlay")
+        flush_print("\nPress Ctrl+C to exit the application\n")
 
     def on_hotkey_pressed(self):
         """Callback when hotkey is pressed."""

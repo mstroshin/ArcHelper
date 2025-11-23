@@ -28,10 +28,23 @@ A game overlay assistant for Ark Raiders that helps players identify items and u
 ### Quick Start
 
 1. **Run as Administrator** (recommended for global hotkeys):
+
+   **Опция А - Использовать bat файл (рекомендуется):**
+   ```bash
+   # Right-click run.bat → Run as Administrator
+   run.bat
+   ```
+
+   **Опция Б - Запуск через командную строку:**
    ```bash
    # Right-click Command Prompt → Run as Administrator
-   py main.py
+   # Используйте один из этих вариантов:
+   python -u main.py
+   # ИЛИ
+   set PYTHONUNBUFFERED=1 && python main.py
    ```
+
+   **Важно:** Флаг `-u` или переменная `PYTHONUNBUFFERED=1` необходимы для немедленного отображения вывода в консоли.
 
 2. The application will initialize:
    - Load 448 items from database
@@ -122,6 +135,11 @@ The overlay shows:
 `en`, `de`, `fr`, `es`, `pt`, `pl`, `no`, `da`, `it`, `ru`, `ja`, `zh-TW`, `uk`, `zh-CN`, `kr`, `tr`, `hr`, `sr`
 
 ## Troubleshooting
+
+### Console output not appearing until program closes
+- **Solution**: Use `python -u main.py` or `run.bat` instead of `py main.py`
+- **Reason**: Python buffers console output by default. The `-u` flag disables buffering.
+- **Alternative**: Set environment variable `PYTHONUNBUFFERED=1` before running
 
 ### Hotkey not working
 - Run as Administrator

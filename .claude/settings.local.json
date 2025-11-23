@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(python test_data_loader.py:*)",
-      "Bash(py:*)"
+      "Bash(py:*)",
+      "Bash(rm:*)",
+      "Bash(python:*)",
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(nul)",
+      "Bash(ping:*)"
     ],
     "deny": [],
     "ask": []
