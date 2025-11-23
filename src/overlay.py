@@ -272,6 +272,9 @@ class OverlayUI:
         title_label = tk.Label(header, text=get_text(self.language, 'app_title'), font=('Segoe UI', 13, 'bold'),
                                fg=COLORS['accent'], bg=COLORS['bg_medium'])
         title_label.pack(side=tk.LEFT, padx=15, pady=10)
+
+        # Make window draggable by header
+        self._make_draggable(win, header)
         # Close button chooses correct close behavior
         close_btn = tk.Label(header, text="✕", font=('Arial', 17, 'bold'),
                              fg=COLORS['text_secondary'], bg=COLORS['bg_medium'],
@@ -558,6 +561,24 @@ class OverlayUI:
             arrow.bind('<Button-1>', lambda e, f=_spawn_used: f())
             name_label.bind('<Button-1>', lambda e, f=_spawn_used: f())
             badge.bind('<Button-1>', lambda e, f=_spawn_used: f())
+
+    def _make_draggable(self, win, widget):
+        """Enable dragging of a toplevel window using the given widget as handle."""
+        def start(event):
+            try:
+                win._drag_start_x = event.x
+                win._drag_start_y = event.y
+            except Exception:
+                pass
+        def drag(event):
+            try:
+                x = win.winfo_x() + event.x - getattr(win, '_drag_start_x', 0)
+                y = win.winfo_y() + event.y - getattr(win, '_drag_start_y', 0)
+                win.geometry(f"+{x}+{y}")
+            except Exception:
+                pass
+        widget.bind('<Button-1>', start)
+        widget.bind('<B1-Motion>', drag)
 
 
     def cleanup(self):
