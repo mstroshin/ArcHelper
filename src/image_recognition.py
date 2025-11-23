@@ -22,7 +22,11 @@ class ItemRecognizer:
         self.data_dir = Path(data_dir)
         self.images_dir = self.data_dir / "Items" / "Images"
         self.database = database
-        self.templates = {}  # item_id -> (template_image, template_gray)
+        self.templates = {}  # item_id -> (template_image, template_gray, template_hist)
+
+        # Initialize ORB detector for feature-based matching
+        self.orb = cv2.ORB_create(nfeatures=500)
+        self.template_features = {}  # item_id -> (keypoints, descriptors)
 
     def load_templates(self):
         """Load all item icon templates from the Images directory."""
@@ -58,8 +62,21 @@ class ItemRecognizer:
                 # Convert to grayscale for matching
                 template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
 
-                # Store both color and grayscale versions
-                self.templates[item_id] = (template, template_gray)
+                # Apply histogram equalization for better lighting normalization
+                template_gray_eq = cv2.equalizeHist(template_gray)
+
+                # Calculate histogram for color-based matching
+                hist = cv2.calcHist([template], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
+                hist = cv2.normalize(hist, hist).flatten()
+
+                # Extract ORB features
+                keypoints, descriptors = self.orb.detectAndCompute(template_gray_eq, None)
+
+                # Store all matching data
+                self.templates[item_id] = (template, template_gray, template_gray_eq, hist)
+                if descriptors is not None:
+                    self.template_features[item_id] = (keypoints, descriptors)
+
                 loaded_count += 1
 
             except Exception as e:
@@ -67,9 +84,96 @@ class ItemRecognizer:
 
         print(f"Loaded {loaded_count} item icon templates")
 
+    def _calculate_match_score(self, image_gray, image_gray_eq, image_hist,
+                                template_gray, template_gray_eq, template_hist,
+                                item_id) -> float:
+        """
+        Calculate comprehensive match score using multiple methods.
+
+        Args:
+            image_gray: Grayscale input image
+            image_gray_eq: Histogram-equalized grayscale input
+            image_hist: Color histogram of input
+            template_gray: Grayscale template
+            template_gray_eq: Histogram-equalized template
+            template_hist: Color histogram of template
+            item_id: Template item ID for feature matching
+
+        Returns:
+            Combined match score (0.0-1.0)
+        """
+        scores = []
+        weights = []
+
+        # 1. Template matching with normalized correlation (original method)
+        result = cv2.matchTemplate(image_gray, template_gray, cv2.TM_CCOEFF_NORMED)
+        _, score1, _, _ = cv2.minMaxLoc(result)
+        scores.append(score1)
+        weights.append(0.25)
+
+        # 2. Template matching with correlation coefficient
+        result = cv2.matchTemplate(image_gray, template_gray, cv2.TM_CCORR_NORMED)
+        _, score2, _, _ = cv2.minMaxLoc(result)
+        scores.append(score2)
+        weights.append(0.15)
+
+        # 3. Template matching on equalized images (lighting invariant)
+        result = cv2.matchTemplate(image_gray_eq, template_gray_eq, cv2.TM_CCOEFF_NORMED)
+        _, score3, _, _ = cv2.minMaxLoc(result)
+        scores.append(score3)
+        weights.append(0.30)
+
+        # 4. Histogram comparison (color similarity)
+        hist_score = cv2.compareHist(image_hist, template_hist, cv2.HISTCMP_CORREL)
+        scores.append(hist_score)
+        weights.append(0.15)
+
+        # 5. Feature-based matching with ORB
+        if item_id in self.template_features:
+            try:
+                kp_img, desc_img = self.orb.detectAndCompute(image_gray_eq, None)
+                kp_tpl, desc_tpl = self.template_features[item_id]
+
+                if desc_img is not None and desc_tpl is not None and len(desc_img) > 0 and len(kp_img) > 0:
+                    # Use BFMatcher for matching
+                    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+                    matches = bf.match(desc_img, desc_tpl)
+
+                    # Calculate feature match score based on good matches
+                    if len(matches) > 0:
+                        # Sort by distance and take best matches
+                        matches = sorted(matches, key=lambda x: x.distance)
+                        good_matches = [m for m in matches if m.distance < 50]
+
+                        # Score based on ratio of good matches
+                        feature_score = min(1.0, len(good_matches) / max(10, len(kp_tpl) * 0.3))
+                        scores.append(feature_score)
+                        weights.append(0.15)
+                    else:
+                        scores.append(0.0)
+                        weights.append(0.15)
+                else:
+                    scores.append(0.0)
+                    weights.append(0.15)
+            except Exception:
+                scores.append(0.0)
+                weights.append(0.15)
+        else:
+            scores.append(0.0)
+            weights.append(0.15)
+
+        # Calculate weighted average
+        total_weight = sum(weights)
+        if total_weight > 0:
+            final_score = sum(s * w for s, w in zip(scores, weights)) / total_weight
+        else:
+            final_score = 0.0
+
+        return max(0.0, min(1.0, final_score))
+
     def recognize(self, image: np.ndarray) -> Optional[str]:
         """
-        Recognize an item from a captured image using template matching.
+        Recognize an item from a captured image using advanced template matching.
 
         Args:
             image: The captured image (numpy array from OpenCV)
@@ -85,20 +189,25 @@ class ItemRecognizer:
             if image.shape[:2] != (ICON_SIZE[1], ICON_SIZE[0]):
                 image = cv2.resize(image, ICON_SIZE)
 
-            # Convert to grayscale
+            # Prepare image for matching
             image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            image_gray_eq = cv2.equalizeHist(image_gray)
+            image_hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
+            image_hist = cv2.normalize(image_hist, image_hist).flatten()
 
             best_match_id = None
             best_match_score = 0.0
 
-            # Compare against all templates
-            for item_id, (template, template_gray) in self.templates.items():
-                # Use normalized correlation coefficient matching
-                result = cv2.matchTemplate(image_gray, template_gray, cv2.TM_CCOEFF_NORMED)
-                _, max_val, _, _ = cv2.minMaxLoc(result)
+            # Compare against all templates using comprehensive scoring
+            for item_id, (template, template_gray, template_gray_eq, template_hist) in self.templates.items():
+                score = self._calculate_match_score(
+                    image_gray, image_gray_eq, image_hist,
+                    template_gray, template_gray_eq, template_hist,
+                    item_id
+                )
 
-                if max_val > best_match_score:
-                    best_match_score = max_val
+                if score > best_match_score:
+                    best_match_score = score
                     best_match_id = item_id
 
             # Return match if above threshold
@@ -129,19 +238,25 @@ class ItemRecognizer:
             if image.shape[:2] != (ICON_SIZE[1], ICON_SIZE[0]):
                 image = cv2.resize(image, ICON_SIZE)
 
-            # Convert to grayscale
+            # Prepare image for matching
             image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            image_gray_eq = cv2.equalizeHist(image_gray)
+            image_hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
+            image_hist = cv2.normalize(image_hist, image_hist).flatten()
 
             best_match_id = None
             best_match_score = 0.0
 
-            # Compare against all templates
-            for item_id, (template, template_gray) in self.templates.items():
-                result = cv2.matchTemplate(image_gray, template_gray, cv2.TM_CCOEFF_NORMED)
-                _, max_val, _, _ = cv2.minMaxLoc(result)
+            # Compare against all templates using comprehensive scoring
+            for item_id, (template, template_gray, template_gray_eq, template_hist) in self.templates.items():
+                score = self._calculate_match_score(
+                    image_gray, image_gray_eq, image_hist,
+                    template_gray, template_gray_eq, template_hist,
+                    item_id
+                )
 
-                if max_val > best_match_score:
-                    best_match_score = max_val
+                if score > best_match_score:
+                    best_match_score = score
                     best_match_id = item_id
 
             # Return match if above threshold
@@ -156,7 +271,7 @@ class ItemRecognizer:
 
     def get_top_matches(self, image: np.ndarray, top_n: int = 5) -> list:
         """
-        Get the top N matching items for a captured image.
+        Get the top N matching items for a captured image using advanced matching.
 
         Args:
             image: The captured image (numpy array from OpenCV)
@@ -173,16 +288,22 @@ class ItemRecognizer:
             if image.shape[:2] != (ICON_SIZE[1], ICON_SIZE[0]):
                 image = cv2.resize(image, ICON_SIZE)
 
-            # Convert to grayscale
+            # Prepare image for matching
             image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            image_gray_eq = cv2.equalizeHist(image_gray)
+            image_hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
+            image_hist = cv2.normalize(image_hist, image_hist).flatten()
 
             matches = []
 
-            # Compare against all templates
-            for item_id, (template, template_gray) in self.templates.items():
-                result = cv2.matchTemplate(image_gray, template_gray, cv2.TM_CCOEFF_NORMED)
-                _, max_val, _, _ = cv2.minMaxLoc(result)
-                matches.append((item_id, max_val))
+            # Compare against all templates using comprehensive scoring
+            for item_id, (template, template_gray, template_gray_eq, template_hist) in self.templates.items():
+                score = self._calculate_match_score(
+                    image_gray, image_gray_eq, image_hist,
+                    template_gray, template_gray_eq, template_hist,
+                    item_id
+                )
+                matches.append((item_id, score))
 
             # Sort by score (descending) and return top N
             matches.sort(key=lambda x: x[1], reverse=True)
