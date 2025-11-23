@@ -171,7 +171,7 @@ class ItemRecognizer:
 
         return max(0.0, min(1.0, final_score))
 
-    def recognize(self, image: np.ndarray) -> Optional[str]:
+    def recognize(self, image: np.ndarray, cancel_event=None) -> Optional[str]:
         """
         Recognize an item from a captured image using advanced template matching.
 
@@ -200,6 +200,8 @@ class ItemRecognizer:
 
             # Compare against all templates using comprehensive scoring
             for item_id, (template, template_gray, template_gray_eq, template_hist) in self.templates.items():
+                if cancel_event is not None and getattr(cancel_event, 'is_set', lambda: False)():
+                    return None
                 score = self._calculate_match_score(
                     image_gray, image_gray_eq, image_hist,
                     template_gray, template_gray_eq, template_hist,
@@ -220,7 +222,7 @@ class ItemRecognizer:
             print(f"Error during recognition: {e}")
             return None
 
-    def recognize_with_score(self, image: np.ndarray) -> Optional[Tuple[str, float]]:
+    def recognize_with_score(self, image: np.ndarray, cancel_event=None) -> Optional[Tuple[str, float]]:
         """
         Recognize an item and return both item_id and confidence score.
 
@@ -249,6 +251,8 @@ class ItemRecognizer:
 
             # Compare against all templates using comprehensive scoring
             for item_id, (template, template_gray, template_gray_eq, template_hist) in self.templates.items():
+                if cancel_event is not None and getattr(cancel_event, 'is_set', lambda: False)():
+                    return None
                 score = self._calculate_match_score(
                     image_gray, image_gray_eq, image_hist,
                     template_gray, template_gray_eq, template_hist,
@@ -269,7 +273,7 @@ class ItemRecognizer:
             print(f"Error during recognition: {e}")
             return None
 
-    def get_top_matches(self, image: np.ndarray, top_n: int = 5) -> list:
+    def get_top_matches(self, image: np.ndarray, top_n: int = 5, cancel_event=None) -> list:
         """
         Get the top N matching items for a captured image using advanced matching.
 
@@ -298,6 +302,8 @@ class ItemRecognizer:
 
             # Compare against all templates using comprehensive scoring
             for item_id, (template, template_gray, template_gray_eq, template_hist) in self.templates.items():
+                if cancel_event is not None and getattr(cancel_event, 'is_set', lambda: False)():
+                    return []
                 score = self._calculate_match_score(
                     image_gray, image_gray_eq, image_hist,
                     template_gray, template_gray_eq, template_hist,

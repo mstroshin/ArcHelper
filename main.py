@@ -145,6 +145,7 @@ class ArcHelper:
         import threading
         import cv2
         from datetime import datetime
+        import threading as _threading
 
         print(f"\n{'='*60}")
         print(f"[HOTKEY] Recognition hotkey triggered!")
@@ -153,6 +154,14 @@ class ArcHelper:
         # Immediately show loading overlay
         try:
             self.overlay.show_loading()
+        except Exception:
+            pass
+
+        # Create a cancellation event for this recognition cycle
+        cancel_event = _threading.Event()
+        # Set overlay close callback so closing loading overlay cancels recognition
+        try:
+            self.overlay.set_close_callback(cancel_event.set)
         except Exception:
             pass
 
@@ -181,7 +190,13 @@ class ArcHelper:
                 print("[INFO] Recognizing item...")
 
                 # Recognize item
-                result = self.recognizer.recognize_with_score(image)
+                # Perform recognition with cancellation support
+                result = self.recognizer.recognize_with_score(image, cancel_event=cancel_event)
+
+                # If cancelled during recognition, abort silently
+                if cancel_event.is_set():
+                    print("[INFO] Recognition cancelled by user (overlay closed).")
+                    return
 
                 if result:
                     item_id, score = result
@@ -194,12 +209,18 @@ class ArcHelper:
                         # Show overlay with item information (runs in thread to avoid blocking)
                         self.overlay.show(item_data, duration=10)
                     else:
-                        print(f"[WARN] Item data not found for ID: {item_id}")
+                        warn_msg = f"[WARN] Item data not found for ID: {item_id}"
+                        print(warn_msg)
+                        try:
+                            # Show an error overlay replacing the loader
+                            self.overlay.show_error(warn_msg)
+                        except Exception:
+                            pass
                 else:
                     print("[WARN] No item recognized (low confidence)")
 
                     # Optionally show top matches for debugging
-                    top_matches = self.recognizer.get_top_matches(image, 3)
+                    top_matches = self.recognizer.get_top_matches(image, 3, cancel_event=cancel_event)
                     if top_matches:
                         print("  Top matches:")
                         for match_id, match_score in top_matches:
@@ -212,6 +233,12 @@ class ArcHelper:
                 print(f"[ERROR] Error processing hotkey: {e}")
                 import traceback
                 traceback.print_exc()
+            finally:
+                # Clear close callback after this cycle completes
+                try:
+                    self.overlay.set_close_callback(None)
+                except Exception:
+                    pass
 
         # Run in a separate thread to avoid blocking the hotkey listener
         thread = threading.Thread(target=process_in_thread, daemon=True)

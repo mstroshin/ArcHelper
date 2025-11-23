@@ -76,6 +76,8 @@ class OverlayUI:
         self._image_cache = {}
         # Flag to suppress outside-click mass close when explicitly clicking a window's X
         self._suppress_outside_close = False
+        # Optional callback invoked when the primary overlay window is closed manually
+        self._close_callback = None
 
         # Start the GUI thread
         self._start_gui_thread()
@@ -96,6 +98,10 @@ class OverlayUI:
                             self._create_overlay(*args, close_existing=True)
                         elif command == 'loading':
                             self._create_loading_overlay(close_existing=True)
+                        elif command == 'error':
+                            # args: (message,)
+                            message = args[0]
+                            self._create_error_overlay(message, close_existing=True)
                         elif command == 'spawn':
                             # args: (item_id,)
                             item_id = args[0]
@@ -140,6 +146,14 @@ class OverlayUI:
         """Show an overlay immediately with a loading indicator while recognition runs."""
         self._command_queue.put(('loading', ()))
 
+    def show_error(self, message: str):
+        """Show an overlay with an error message after a failed recognition or missing data.
+
+        Args:
+            message: Error text to display in the overlay.
+        """
+        self._command_queue.put(('error', (message,)))
+
     def _close_window(self):
         """Close the primary overlay window."""
         if self.window:
@@ -151,6 +165,12 @@ class OverlayUI:
             except Exception:
                 pass
             self.window = None
+            # Invoke close callback (used to cancel recognition) if set
+            try:
+                if self._close_callback:
+                    self._close_callback()
+            except Exception:
+                pass
 
     def _destroy_spawned(self, win):
         """Destroy a spawned window and remove it from tracking."""
@@ -265,6 +285,76 @@ class OverlayUI:
         hint = tk.Label(loading_frame, text=get_text(self.language, 'close_instruction'),
                         font=('Segoe UI', 11), fg=COLORS['text_tertiary'], bg=COLORS['bg_dark'])
         hint.pack(pady=(30, 10))
+
+        if close_existing:
+            win.bind('<Escape>', lambda e: self._close_window())
+            win.protocol('WM_DELETE_WINDOW', self._close_window)
+        else:
+            win.bind('<Escape>', lambda e, w=win: self._destroy_spawned(w))
+            win.protocol('WM_DELETE_WINDOW', lambda w=win: self._destroy_spawned(w))
+
+        if WIN32_AVAILABLE:
+            self._start_global_click_outside_detection()
+
+    def _create_error_overlay(self, message: str, close_existing=True):
+        """Create and display an error overlay after loader when something fails."""
+        if close_existing:
+            self._close_window()
+            win = tk.Toplevel(self.root)
+            self.window = win
+        else:
+            win = tk.Toplevel(self.root)
+            self._spawned_windows.append(win)
+
+        win.title("ArcHelper")
+        win.geometry(f"{OVERLAY_WIDTH}x{OVERLAY_HEIGHT}")
+        win.attributes('-topmost', True)
+        win.attributes('-alpha', OVERLAY_ALPHA)
+        win.configure(bg=COLORS['bg_dark'])
+        try:
+            win.attributes('-toolwindow', True)
+        except Exception:
+            pass
+        win.overrideredirect(True)
+
+        self._position_near_cursor(win)
+
+        border_frame = tk.Frame(win, bg=COLORS['warning'], bd=0)
+        border_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+        container = tk.Frame(border_frame, bg=COLORS['bg_dark'], bd=0)
+        container.pack(fill=tk.BOTH, expand=True)
+        header = tk.Frame(container, bg=COLORS['bg_medium'], height=40)
+        header.pack(fill=tk.X, padx=0, pady=0)
+        header.pack_propagate(False)
+        title_label = tk.Label(header, text=get_text(self.language, 'app_title'), font=('Segoe UI', 13, 'bold'),
+                               fg=COLORS['warning'], bg=COLORS['bg_medium'])
+        title_label.pack(side=tk.LEFT, padx=15, pady=10)
+        self._make_draggable(win, header)
+        close_btn = tk.Label(header, text="✕", font=('Arial', 17, 'bold'),
+                             fg=COLORS['text_secondary'], bg=COLORS['bg_medium'],
+                             cursor='hand2')
+        close_btn.pack(side=tk.RIGHT, padx=15, pady=10)
+        def on_close_click(event, w=win):
+            self._suppress_outside_close = True
+            if w == self.window:
+                self._close_window()
+            else:
+                self._destroy_spawned(w)
+        close_btn.bind('<Button-1>', on_close_click)
+
+        main_frame = tk.Frame(container, bg=COLORS['bg_dark'])
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        error_frame = tk.Frame(main_frame, bg=COLORS['bg_dark'])
+        error_frame.pack(expand=True)
+        error_label = tk.Label(error_frame,
+                                text=message,
+                                font=('Segoe UI', 15, 'bold'),
+                                fg=COLORS['warning'], bg=COLORS['bg_dark'],
+                                wraplength=OVERLAY_WIDTH-60, justify='left')
+        error_label.pack(pady=(40, 20))
+        hint = tk.Label(error_frame, text=get_text(self.language, 'close_instruction'),
+                        font=('Segoe UI', 11), fg=COLORS['text_tertiary'], bg=COLORS['bg_dark'])
+        hint.pack(pady=(10, 10))
 
         if close_existing:
             win.bind('<Escape>', lambda e: self._close_window())
@@ -678,6 +768,8 @@ class OverlayUI:
             self._destroy_spawned(w)
         if self.window:
             self._close_window()
+        # Clear callback
+        self._close_callback = None
 
     def _load_item_image(self, item_id):
         """Load and cache a PhotoImage for the given item id.
@@ -750,3 +842,12 @@ class OverlayUI:
         except Exception:
             pass
         return item_id
+
+    # Public API ------------------------------------------------------------
+    def set_close_callback(self, callback):
+        """Set a callback invoked when the primary overlay window is closed.
+
+        Args:
+            callback: Callable or None. If None, removes existing callback.
+        """
+        self._close_callback = callback

@@ -9,6 +9,7 @@ A game overlay assistant for Ark Raiders that helps players identify items and u
 - **Recycling Details**: View what materials you get from recycling or salvaging items
 - **Material Usage**: Find out what items can be crafted using a specific material
 - **Multi-language Support**: 22 languages supported
+ - **Error Overlay**: Missing item data (e.g. `agave_juice`) now triggers a post-loader error window.
 
 ## Requirements
 
@@ -153,6 +154,10 @@ The overlay shows:
 - Check console for top match suggestions
 
 ### Overlay doesn't appear
+### Item data missing (e.g., agave_juice)
+- Console warning `[WARN] Item data not found for ID: agave_juice` now shows an orange error overlay after the loading spinner.
+- Check for a JSON file in `Data/Items/` and confirm it contains an `id` matching `agave_juice`.
+- If the item is not yet implemented, the warning is expected.
 - Check if window appeared off-screen
 - Verify tkinter works: `py -c "import tkinter"`
 - Look for errors in console
