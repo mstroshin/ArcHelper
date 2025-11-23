@@ -394,6 +394,21 @@ class OverlayUI:
                               bg=COLORS['bg_dark'])
         close_label.pack(pady=(15, 5))
 
+    def _get_contrasting_text_color(self, bg_hex):
+        """Return a contrasting text color (dark or light) for the given background hex color."""
+        try:
+            hexv = bg_hex.lstrip('#')
+            if len(hexv) != 6:
+                return COLORS['text_primary']
+            r = int(hexv[0:2], 16)
+            g = int(hexv[2:4], 16)
+            b = int(hexv[4:6], 16)
+            luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+            # If background is light, use dark text; else use light text
+            return COLORS['bg_dark'] if luminance > 0.55 else COLORS['text_primary']
+        except Exception:
+            return COLORS['text_primary']
+
     def _create_card_frame(self, parent):
         """Create a card-style frame."""
         card = tk.Frame(parent, bg=COLORS['bg_medium'], bd=0)
@@ -430,25 +445,28 @@ class OverlayUI:
         for material_id, amount in materials_dict.items():
             material_item = self.database.get_item(material_id)
             material_name = material_item.get('name', {}).get(self.language, material_id) if material_item else material_id
+            rarity = (material_item.get('rarity') if material_item else 'default') or 'default'
+            rarity_color = RARITY_COLORS.get(rarity.lower(), RARITY_COLORS['default'])
+            text_contrast = self._get_contrasting_text_color(rarity_color)
 
             # Material row
             mat_row = tk.Frame(card, bg=COLORS['bg_medium'])
             mat_row.pack(fill=tk.X, pady=3)
 
-            # Bullet point
+            # Bullet point colored by rarity
             bullet = tk.Label(mat_row, text="●", font=('Segoe UI', 11),
-                            fg=accent_color, bg=COLORS['bg_medium'])
+                              fg=rarity_color, bg=COLORS['bg_medium'])
             bullet.pack(side=tk.LEFT, padx=(0, 8))
 
-            # Material name
-            name_label = tk.Label(mat_row, text=material_name, font=('Segoe UI', 12),
-                                 fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
+            # Material name colored by rarity
+            name_label = tk.Label(mat_row, text=material_name, font=('Segoe UI', 12, 'bold'),
+                                   fg=rarity_color, bg=COLORS['bg_medium'])
             name_label.pack(side=tk.LEFT)
 
-            # Amount badge
+            # Amount badge uses rarity color background with contrasting text
             amount_badge = tk.Label(mat_row, text=f"x{amount}", font=('Segoe UI', 11, 'bold'),
-                                   fg=COLORS['bg_dark'], bg=accent_color,
-                                   padx=6, pady=1)
+                                     fg=text_contrast, bg=rarity_color,
+                                     padx=6, pady=1)
             amount_badge.pack(side=tk.RIGHT)
 
     def _add_crafting_uses_section(self, parent, items_using):
@@ -464,35 +482,32 @@ class OverlayUI:
 
         # Items card
         card = self._create_card_frame(parent)
-
-        # Show first 5 items
-        for used_item in items_using[:5]:
+        # Show all items (scrollable container handles overflow)
+        for used_item in items_using:
             used_name = used_item.get('name', {}).get(self.language, used_item['id'])
-            amount = used_item.get('recipe', {}).get(used_item.get('id'), 0)
+            rarity = (used_item.get('rarity') or 'default').lower()
+            rarity_color = RARITY_COLORS.get(rarity, RARITY_COLORS['default'])
+            contrast = self._get_contrasting_text_color(rarity_color)
 
             # Item row
             item_row = tk.Frame(card, bg=COLORS['bg_medium'])
             item_row.pack(fill=tk.X, pady=3)
 
-            # Arrow
+            # Arrow colored by rarity
             arrow = tk.Label(item_row, text="→", font=('Segoe UI', 13),
-                           fg=COLORS['accent'], bg=COLORS['bg_medium'])
+                             fg=rarity_color, bg=COLORS['bg_medium'])
             arrow.pack(side=tk.LEFT, padx=(0, 8))
 
-            # Item name
-            name_label = tk.Label(item_row, text=used_name, font=('Segoe UI', 12),
-                                 fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
+            # Item name colored by rarity
+            name_label = tk.Label(item_row, text=used_name, font=('Segoe UI', 12, 'bold'),
+                                   fg=rarity_color, bg=COLORS['bg_medium'])
             name_label.pack(side=tk.LEFT)
 
-        # Show "more" indicator if needed
-        if len(items_using) > 5:
-            more_frame = tk.Frame(card, bg=COLORS['bg_medium'])
-            more_frame.pack(fill=tk.X, pady=(5, 0))
+            # Optional small rarity badge
+            badge = tk.Label(item_row, text=rarity.upper(), font=('Segoe UI', 9, 'bold'),
+                             fg=contrast, bg=rarity_color, padx=4, pady=1)
+            badge.pack(side=tk.RIGHT, padx=(8, 0))
 
-            more_label = tk.Label(more_frame, text=get_text(self.language, 'and_more', count=len(items_using) - 5),
-                                 font=('Segoe UI', 11, 'italic'), fg=COLORS['text_tertiary'],
-                                 bg=COLORS['bg_medium'])
-            more_label.pack(anchor='w')
 
     def cleanup(self):
         """Cleanup overlay resources."""
