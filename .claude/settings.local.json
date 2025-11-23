@@ -7,7 +7,11 @@
       "Bash(python:*)",
       "Bash(timeout /t 3 /nobreak)",
       "Bash(nul)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(python3:*)",
+      "Bash(powershell -Command \"(Get-ChildItem ''Data\\Items\\Images\\*.webp'' | Measure-Object).Count\")"
     ],
     "deny": [],
     "ask": []

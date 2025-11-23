@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from pathlib import Path
 from typing import Optional, Tuple
+from PIL import Image
 from src.config import MATCH_THRESHOLD, ICON_SIZE
 
 
@@ -29,15 +30,25 @@ class ItemRecognizer:
             raise FileNotFoundError(f"Images directory not found: {self.images_dir}")
 
         loaded_count = 0
-        for png_file in self.images_dir.glob("*.png"):
-            item_id = png_file.stem  # filename without extension
+        # Support both .png and .webp formats
+        image_files = list(self.images_dir.glob("*.png")) + list(self.images_dir.glob("*.webp"))
+
+        for image_file in image_files:
+            item_id = image_file.stem  # filename without extension
 
             try:
-                # Load image
-                template = cv2.imread(str(png_file), cv2.IMREAD_COLOR)
+                # Load image - use PIL for .webp files, OpenCV for others
+                if image_file.suffix.lower() == '.webp':
+                    # Use PIL to load WebP files
+                    pil_image = Image.open(str(image_file)).convert('RGB')
+                    # Convert PIL image to OpenCV format (RGB -> BGR)
+                    template = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+                else:
+                    # Use OpenCV for PNG and other formats
+                    template = cv2.imread(str(image_file), cv2.IMREAD_COLOR)
 
                 if template is None:
-                    print(f"Warning: Could not load image {png_file.name}")
+                    print(f"Warning: Could not load image {image_file.name}")
                     continue
 
                 # Resize to standard size if needed
@@ -52,7 +63,7 @@ class ItemRecognizer:
                 loaded_count += 1
 
             except Exception as e:
-                print(f"Error loading template {png_file.name}: {e}")
+                print(f"Error loading template {image_file.name}: {e}")
 
         print(f"Loaded {loaded_count} item icon templates")
 
