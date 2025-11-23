@@ -3,6 +3,7 @@
 import mss
 import numpy as np
 import cv2
+import ctypes
 from typing import Optional
 from src.config import CAPTURE_SIZE
 
@@ -24,9 +25,21 @@ class ScreenCapture:
         # Warm up cursor position detection to avoid first-call issues
         if WIN32_AVAILABLE:
             try:
+                # Ensure DPI awareness so cursor and capture coordinates match on first use
+                try:
+                    ctypes.windll.user32.SetProcessDPIAware()
+                except Exception:
+                    pass
+
                 _ = win32api.GetCursorPos()
             except:
                 pass
+        # Warm up MSS monitor info to avoid first-call offset issues
+        try:
+            with mss.mss() as sct:
+                _ = sct.monitors
+        except Exception:
+            pass
 
     def get_cursor_position(self) -> tuple:
         """
@@ -66,6 +79,17 @@ class ScreenCapture:
 
             # Get cursor position
             cursor_x, cursor_y = self.get_cursor_position()
+
+            # Debug logging for first few captures (optional; can be removed later)
+            # This helps diagnose any remaining offset issues.
+            try:
+                if not hasattr(self, "_debug_capture_count"):
+                    self._debug_capture_count = 0
+                if self._debug_capture_count < 3:
+                    print(f"[ScreenCapture DEBUG] Cursor: ({cursor_x},{cursor_y}) Size: {size} Offset: {offset}")
+                self._debug_capture_count += 1
+            except Exception:
+                pass
 
             # Calculate capture region (centered on cursor + offset)
             width, height = size

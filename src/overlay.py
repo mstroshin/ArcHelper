@@ -334,9 +334,7 @@ class OverlayUI:
         type_label.pack(side=tk.LEFT)
 
         # Description card
-        description = item_data.get('description', {}).get(self.language, '')
-        if description:
-            self._add_card(content, description, COLORS['text_secondary'], italic=True)
+        # (Description removed per request)
 
         # Properties card
         properties = []
