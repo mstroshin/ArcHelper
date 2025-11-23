@@ -657,8 +657,7 @@ class OverlayUI:
     def _normalize_image_id(self, item_id: str) -> str:
         """Normalize item id for image lookup.
 
-        Weapons have JSON ids ending with _i, _ii, _iii, _iv but images use _1.
-        This maps any roman numeral suffix to _1 while leaving other ids unchanged.
+        Weapons have JSON ids ending with _i, _ii, _iii, _iv but images dont use suffixes.
         """
         try:
             lower = item_id.lower()
@@ -666,7 +665,7 @@ class OverlayUI:
                 if lower.endswith(suffix):
                     # Strip the roman part and append _1
                     base = item_id[: -len(suffix)]
-                    return f"{base}_1"
+                    return base
         except Exception:
             pass
         return item_id
