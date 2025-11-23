@@ -19,8 +19,14 @@ class ScreenCapture:
     """Handles screen capture at cursor position."""
 
     def __init__(self):
-        """Initialize screen capture with mss."""
-        self.sct = mss.mss()
+        """Initialize screen capture."""
+        # Don't create mss instance here - create it per-capture to avoid threading issues
+        # Warm up cursor position detection to avoid first-call issues
+        if WIN32_AVAILABLE:
+            try:
+                _ = win32api.GetCursorPos()
+            except:
+                pass
 
     def get_cursor_position(self) -> tuple:
         """
@@ -38,8 +44,9 @@ class ScreenCapture:
                 return (0, 0)
         else:
             # Fallback: return center of primary monitor
-            monitor = self.sct.monitors[1]  # Primary monitor
-            return (monitor["width"] // 2, monitor["height"] // 2)
+            with mss.mss() as sct:
+                monitor = sct.monitors[1]  # Primary monitor
+                return (monitor["width"] // 2, monitor["height"] // 2)
 
     def capture_at_cursor(self, size: tuple = CAPTURE_SIZE, offset: tuple = (0, 0)) -> Optional[np.ndarray]:
         """
@@ -53,6 +60,10 @@ class ScreenCapture:
             Captured image as numpy array (OpenCV format) or None if capture fails
         """
         try:
+            # Small delay to ensure we get the actual current cursor position
+            import time
+            time.sleep(0.01)  # 10ms delay
+
             # Get cursor position
             cursor_x, cursor_y = self.get_cursor_position()
 
@@ -69,16 +80,17 @@ class ScreenCapture:
                 "height": height
             }
 
-            # Capture the screen
-            screenshot = self.sct.grab(monitor)
+            # Capture the screen using context manager for thread safety
+            with mss.mss() as sct:
+                screenshot = sct.grab(monitor)
 
-            # Convert to numpy array
-            img = np.array(screenshot)
+                # Convert to numpy array
+                img = np.array(screenshot)
 
-            # Convert from BGRA to BGR (OpenCV format)
-            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+                # Convert from BGRA to BGR (OpenCV format)
+                img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
 
-            return img
+                return img
 
         except Exception as e:
             print(f"Error capturing screen: {e}")
@@ -105,11 +117,12 @@ class ScreenCapture:
                 "height": height
             }
 
-            screenshot = self.sct.grab(monitor)
-            img = np.array(screenshot)
-            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+            with mss.mss() as sct:
+                screenshot = sct.grab(monitor)
+                img = np.array(screenshot)
+                img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
 
-            return img
+                return img
 
         except Exception as e:
             print(f"Error capturing region: {e}")
@@ -126,16 +139,17 @@ class ScreenCapture:
             Captured image as numpy array (OpenCV format) or None if capture fails
         """
         try:
-            if monitor_number < 1 or monitor_number > len(self.sct.monitors) - 1:
-                print(f"Invalid monitor number: {monitor_number}")
-                return None
+            with mss.mss() as sct:
+                if monitor_number < 1 or monitor_number > len(sct.monitors) - 1:
+                    print(f"Invalid monitor number: {monitor_number}")
+                    return None
 
-            monitor = self.sct.monitors[monitor_number]
-            screenshot = self.sct.grab(monitor)
-            img = np.array(screenshot)
-            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+                monitor = sct.monitors[monitor_number]
+                screenshot = sct.grab(monitor)
+                img = np.array(screenshot)
+                img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
 
-            return img
+                return img
 
         except Exception as e:
             print(f"Error capturing full screen: {e}")
@@ -148,9 +162,10 @@ class ScreenCapture:
         Returns:
             List of monitor dictionaries
         """
-        return self.sct.monitors
+        with mss.mss() as sct:
+            return sct.monitors
 
     def cleanup(self):
         """Cleanup screen capture resources."""
-        if hasattr(self, 'sct'):
-            self.sct.close()
+        # No cleanup needed - using context managers for mss
+        pass

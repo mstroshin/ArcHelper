@@ -127,20 +127,14 @@ def run_recognition_tests():
                     match_position = i
                     match_confidence = match_score
 
-        # Determine pass/fail based on whether expected item is in top matches
+        # Determine pass/fail - ONLY rank #1 is considered a pass
         if found_match:
             if match_position == 1:
                 print(f"  ✓ PASSED: Perfect match at rank #1 ({match_confidence:.2%})")
                 passed_tests += 1
-            elif match_position <= 10:
-                print(f"  ✓ PASSED: Found at rank #{match_position} ({match_confidence:.2%})")
-                passed_tests += 1
-            elif match_position <= 150:
-                print(f"  ⚠ PARTIAL PASS: Found at rank #{match_position} ({match_confidence:.2%})")
-                print(f"    Note: Item recognized but with low confidence - needs algorithm improvement")
-                passed_tests += 1  # Still count as pass if in top 150
             else:
-                print(f"  ❌ FAILED: Expected item found at rank #{match_position} (too low)")
+                print(f"  ❌ FAILED: Expected item found at rank #{match_position} (must be #1 to pass)")
+                print(f"    Confidence: {match_confidence:.2%}")
                 failed_tests += 1
         else:
             print(f"  ❌ FAILED: Expected item '{expected_name}' not in top 150 matches")

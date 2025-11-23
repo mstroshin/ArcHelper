@@ -76,7 +76,7 @@ class ArcHelper:
         # Setup hotkey manager
         flush_print("\nSetting up hotkey manager...")
         self.hotkey_manager = HotkeyManager()
-        self.hotkey_manager.register_hotkey('ctrl+shift+i', self.on_hotkey_pressed)
+        self.hotkey_manager.register_hotkey('ctrl+d', self.on_hotkey_pressed)
         flush_print("✓ Hotkey registered")
 
         flush_print("\n" + "=" * 60)
@@ -84,7 +84,7 @@ class ArcHelper:
         flush_print("=" * 60)
         flush_print("\n📋 Usage:")
         flush_print("  1. Hover your cursor over an item in-game")
-        flush_print("  2. Press Ctrl+Shift+I to identify the item")
+        flush_print("  2. Press Ctrl+D to identify the item")
         flush_print("  3. View item information in the overlay")
         flush_print("  4. Press ESC or click to close the overlay")
         flush_print("\nPress Ctrl+C to exit the application\n")
@@ -92,6 +92,8 @@ class ArcHelper:
     def on_hotkey_pressed(self):
         """Callback when hotkey is pressed."""
         import threading
+        import cv2
+        from datetime import datetime
 
         def process_in_thread():
             try:
@@ -103,6 +105,15 @@ class ArcHelper:
                 if image is None:
                     print("[WARN] Failed to capture image")
                     return
+
+                # Save screenshot to Debug folder
+                debug_dir = Path(__file__).parent / "Debug"
+                debug_dir.mkdir(exist_ok=True)
+
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                screenshot_path = debug_dir / f"capture_{timestamp}.png"
+                cv2.imwrite(str(screenshot_path), image)
+                print(f"[DEBUG] Screenshot saved to: {screenshot_path}")
 
                 print("[INFO] Recognizing item...")
 

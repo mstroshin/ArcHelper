@@ -12,7 +12,8 @@
       "Bash(findstr:*)",
       "Bash(python3:*)",
       "Bash(powershell -Command \"(Get-ChildItem ''Data\\Items\\Images\\*.webp'' | Measure-Object).Count\")",
-      "Bash(del test_debug.py)"
+      "Bash(del test_debug.py)",
+      "Bash(where:*)"
     ],
     "deny": [],
     "ask": []

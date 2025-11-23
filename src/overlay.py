@@ -3,6 +3,7 @@
 import tkinter as tk
 from tkinter import ttk
 import threading
+import queue
 from src.config import OVERLAY_WIDTH, OVERLAY_HEIGHT, OVERLAY_ALPHA, DEFAULT_LANGUAGE
 
 try:
@@ -27,32 +28,83 @@ class OverlayUI:
         """
         self.database = database
         self.language = language
+        self.root = None
         self.window = None
         self.auto_close_timer = None
+        self._command_queue = queue.Queue()
+        self._running = False
+        self._gui_thread = None
+
+        # Start the GUI thread
+        self._start_gui_thread()
+
+    def _start_gui_thread(self):
+        """Start the dedicated GUI thread with event loop."""
+        def gui_loop():
+            self.root = tk.Tk()
+            self.root.withdraw()  # Hide the root window
+            self._running = True
+
+            # Process commands from queue
+            def process_queue():
+                try:
+                    while not self._command_queue.empty():
+                        command, args = self._command_queue.get_nowait()
+                        if command == 'show':
+                            self._create_overlay(*args)
+                        elif command == 'close':
+                            self._close_window()
+                        elif command == 'quit':
+                            self._running = False
+                            self.root.quit()
+                            return
+                except queue.Empty:
+                    pass
+
+                if self._running:
+                    self.root.after(100, process_queue)
+
+            process_queue()
+            self.root.mainloop()
+
+        self._gui_thread = threading.Thread(target=gui_loop, daemon=True)
+        self._gui_thread.start()
+
+        # Wait for GUI thread to initialize
+        import time
+        while self.root is None:
+            time.sleep(0.01)
 
     def show(self, item_data, duration=10):
         """
         Show the overlay with item information.
+        This method is thread-safe and can be called from any thread.
 
         Args:
             item_data: Item data dictionary to display
             duration: Time in seconds before auto-close (0 = no auto-close)
         """
-        # Close existing window if any
+        self._command_queue.put(('show', (item_data, duration)))
+
+    def _close_window(self):
+        """Close the current overlay window."""
         if self.window:
             try:
+                if self.auto_close_timer:
+                    self.root.after_cancel(self.auto_close_timer)
+                    self.auto_close_timer = None
                 self.window.destroy()
             except:
                 pass
-
-        # Create new overlay window
-        self._create_overlay(item_data, duration)
+            self.window = None
 
     def _create_overlay(self, item_data, duration):
         """Create and display the overlay window."""
+        # Close existing window if any
+        self._close_window()
 
-        # Create the window
-        self.window = tk.Tk()
+        # Create the window as Toplevel (not a new Tk instance)
+        self.window = tk.Toplevel(self.root)
         self.window.title("ArcHelper - Item Info")
 
         # Window configuration
@@ -73,15 +125,12 @@ class OverlayUI:
         self._create_content(item_data)
 
         # Bind close events
-        self.window.bind('<Escape>', lambda e: self.window.destroy())
-        self.window.bind('<Button-1>', lambda e: self.window.destroy())  # Close on click
+        self.window.bind('<Escape>', lambda e: self._close_window())
+        self.window.bind('<Button-1>', lambda e: self._close_window())  # Close on click
 
         # Auto-close timer
         if duration > 0:
-            self.window.after(duration * 1000, self.window.destroy)
-
-        # Run the window
-        self.window.mainloop()
+            self.auto_close_timer = self.root.after(duration * 1000, self._close_window)
 
     def _position_near_cursor(self):
         """Position the window near the cursor."""
@@ -236,9 +285,6 @@ class OverlayUI:
 
     def cleanup(self):
         """Cleanup overlay resources."""
-        if self.window:
-            try:
-                self.window.destroy()
-            except:
-                pass
-            self.window = None
+        self._command_queue.put(('quit', ()))
+        if self._gui_thread and self._gui_thread.is_alive():
+            self._gui_thread.join(timeout=2)
