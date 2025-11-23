@@ -606,15 +606,23 @@ class OverlayUI:
         """
         if not item_id:
             return None
+        # Normalize weapon IDs with roman numeral suffixes to _1 (image naming convention)
+        normalized_id = self._normalize_image_id(item_id)
+        # Return cached image if already loaded for original id
         if item_id in self._image_cache:
+            return self._image_cache[item_id]
+        # Also allow reuse if normalized id already cached
+        if normalized_id in self._image_cache:
+            self._image_cache[item_id] = self._image_cache[normalized_id]
             return self._image_cache[item_id]
         try:
             base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
             images_dir = os.path.join(base_dir, 'Data', 'Items', 'Images')
+            # Build candidate list using normalized id first (so roman variants resolve to *_1 files)
             candidates = [
-                os.path.join(images_dir, f'{item_id}.webp'),
-                os.path.join(images_dir, f'{item_id}.png'),
-                os.path.join(images_dir, f'{item_id}.jpg'),
+                os.path.join(images_dir, f'{normalized_id}.webp'),
+                os.path.join(images_dir, f'{normalized_id}.png'),
+                os.path.join(images_dir, f'{normalized_id}.jpg'),
             ]
             img_path = next((p for p in candidates if os.path.isfile(p)), None)
             if not img_path:
@@ -633,7 +641,26 @@ class OverlayUI:
                 except Exception:
                     photo = None
             if photo:
+                # Cache under both original and normalized ids for fast future access
+                self._image_cache[normalized_id] = photo
                 self._image_cache[item_id] = photo
             return photo
         except Exception:
             return None
+
+    def _normalize_image_id(self, item_id: str) -> str:
+        """Normalize item id for image lookup.
+
+        Weapons have JSON ids ending with _i, _ii, _iii, _iv but images use _1.
+        This maps any roman numeral suffix to _1 while leaving other ids unchanged.
+        """
+        try:
+            lower = item_id.lower()
+            for suffix in ('_i', '_ii', '_iii', '_iv'):
+                if lower.endswith(suffix):
+                    # Strip the roman part and append _1
+                    base = item_id[: -len(suffix)]
+                    return f"{base}_1"
+        except Exception:
+            pass
+        return item_id
