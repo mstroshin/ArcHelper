@@ -1,6 +1,7 @@
 """Settings manager for ArcHelperPy."""
 
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict
 from src.config import (
@@ -19,11 +20,17 @@ class SettingsManager:
         Initialize settings manager.
 
         Args:
-            settings_file: Path to settings JSON file. Defaults to settings.json in project root.
+            settings_file: Path to settings JSON file. Defaults to settings.json next to executable.
         """
         if settings_file is None:
-            # Default to settings.json in project root
-            self.settings_file = Path(__file__).parent.parent / "settings.json"
+            # Determine correct path for settings.json (works with PyInstaller)
+            if getattr(sys, 'frozen', False):
+                # Running as compiled exe - save next to executable
+                exe_dir = Path(sys.executable).parent
+                self.settings_file = exe_dir / "settings.json"
+            else:
+                # Running as Python script - save in project root
+                self.settings_file = Path(__file__).parent.parent / "settings.json"
         else:
             self.settings_file = settings_file
 

@@ -16,7 +16,10 @@
       "Bash(where:*)",
       "Bash(C:UsersmstroAppDataLocalMicrosoftWindowsAppspython.exe test_settings_gui.py)",
       "Bash(C:UsersmstroAppDataLocalMicrosoftWindowsAppspython.exe test_overlay_close.py)",
-      "Bash(cmd /c \"python test_overlay_close.py\")"
+      "Bash(cmd /c \"python test_overlay_close.py\")",
+      "Bash(pip install:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(cmd /c \"dist\\ArcHelperDebug.exe\")"
     ],
     "deny": [],
     "ask": []

@@ -361,12 +361,36 @@ Test scripts are provided for individual components:
 ## Build System
 
 PyInstaller spec files for distribution:
-- `ArcHelper.spec` - Release build
+- `ArcHelper.spec` - Release build (GUI only, no console)
 - `ArcHelperDebug.spec` - Debug build with console
 
+### Building Executables
+
+**Prerequisites:**
+```bash
+pip install pyinstaller
+```
+
+**Build Release Version (no console):**
+```bash
+python -m PyInstaller ArcHelper.spec --clean
+```
+
+**Build Debug Version (with console for troubleshooting):**
+```bash
+python -m PyInstaller ArcHelperDebug.spec --clean
+```
+
 Build outputs:
-- `build/` - Build artifacts
-- `dist/` - Distributable executables
+- `build/` - Build artifacts (can be deleted)
+- `dist/` - Distributable executables (~66 MB each)
+
+**Important Notes:**
+- The `Data/` folder is automatically packaged inside the exe
+- Settings (`settings.json`) and Debug screenshots are created next to the exe when run
+- First launch may take a few seconds while PyInstaller unpacks files
+- The exe is portable - no installation required, just copy and run
+- Run as administrator for global hotkey support
 
 ## Known Limitations
 

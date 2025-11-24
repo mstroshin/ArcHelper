@@ -11,7 +11,8 @@ import io
 from pathlib import Path
 
 # Fix encoding for Windows console and disable buffering
-if sys.platform == 'win32':
+# Note: When running as GUI app (PyInstaller with console=False), stdout/stderr may be None
+if sys.platform == 'win32' and sys.stdout is not None and hasattr(sys.stdout, 'buffer'):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', line_buffering=True)
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', line_buffering=True)
 
@@ -27,15 +28,27 @@ from src.localization import UI_TEXTS, get_text
 
 def flush_print(*args, **kwargs):
     """Print with immediate flush to ensure output appears in console."""
-    print(*args, **kwargs)
-    sys.stdout.flush()
+    # Only print if stdout exists (in console mode)
+    if sys.stdout is not None:
+        print(*args, **kwargs)
+        if hasattr(sys.stdout, 'flush'):
+            sys.stdout.flush()
 
 
 class ArcHelper:
     """Main application class coordinating all components."""
 
     def __init__(self):
-        self.data_dir = Path(__file__).parent / "Data"
+        # Determine the correct path for Data directory (works with PyInstaller)
+        if getattr(sys, 'frozen', False):
+            # Running as compiled exe (PyInstaller)
+            # sys._MEIPASS is the temporary folder where PyInstaller unpacks files
+            base_path = Path(sys._MEIPASS)
+        else:
+            # Running as Python script
+            base_path = Path(__file__).parent
+
+        self.data_dir = base_path / "Data"
         self.database = None
         self.recognizer = None
         self.screen_capture = None
@@ -178,8 +191,13 @@ class ArcHelper:
                     self._show_not_recognized()
                     return
 
-                # Save screenshot to Debug folder
-                debug_dir = Path(__file__).parent / "Debug"
+                # Save screenshot to Debug folder (next to exe or in project root)
+                if getattr(sys, 'frozen', False):
+                    # Running as exe - save next to executable
+                    debug_dir = Path(sys.executable).parent / "Debug"
+                else:
+                    # Running as script - save in project root
+                    debug_dir = Path(__file__).parent / "Debug"
                 debug_dir.mkdir(exist_ok=True)
 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
