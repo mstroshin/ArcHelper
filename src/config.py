@@ -1,7 +1,8 @@
 """Configuration settings for ArcHelperPy."""
 
 # Hotkey configuration
-DEFAULT_HOTKEY = 'ctrl+shift+i'  # Hotkey to trigger item recognition
+DEFAULT_HOTKEY = 'ctrl+d'  # Hotkey to trigger item recognition
+HOTKEY_DEBOUNCE_DELAY = 0.5  # Minimum delay between hotkey triggers in seconds (prevents double-trigger)
 
 # Image recognition settings
 ICON_SIZE = (160, 160)  # Expected size of item icons

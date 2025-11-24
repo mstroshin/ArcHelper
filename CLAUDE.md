@@ -212,6 +212,7 @@ Each bench JSON contains upgrade requirements organized by level:
 
 **Features**:
 - Global hotkey detection (default: `ctrl+d`)
+- **Debouncing** to prevent double-triggers (0.5s delay by default)
 - Administrator privilege checking
 - Customizable combinations
 - Non-suppressing (doesn't block game input)
@@ -314,6 +315,13 @@ The `ItemDatabase` class builds several indexes on startup:
 - Recognition runs in background thread to keep UI responsive
 - Cancellation events prevent processing when overlay closes
 
+### Hotkey Debouncing
+- Hotkeys use a debouncing mechanism to prevent double-triggers
+- The `keyboard` library can fire callbacks multiple times (key down + key up)
+- Default debounce delay: 0.5 seconds (configurable in [src/config.py](src/config.py))
+- If a hotkey is pressed within the debounce window, the duplicate trigger is ignored
+- Debug messages show when a trigger is debounced
+
 ### Anti-Cheat Safety
 
 **The application follows strict anti-cheat guidelines**:
@@ -331,7 +339,8 @@ The `ItemDatabase` class builds several indexes on startup:
 
 ### Key Constants ([src/config.py](src/config.py))
 ```python
-DEFAULT_HOTKEY = 'ctrl+shift+i'      # Default hotkey (overridden by settings)
+DEFAULT_HOTKEY = 'ctrl+d'            # Default hotkey (overridden by settings)
+HOTKEY_DEBOUNCE_DELAY = 0.5          # Minimum delay between hotkey triggers (prevents double-trigger)
 ICON_SIZE = (160, 160)               # Item icon size
 MATCH_THRESHOLD = 0.4                # Recognition confidence threshold (40%)
 CAPTURE_SIZE = (160, 160)            # Default screen capture size

@@ -4,19 +4,26 @@ import keyboard
 import threading
 import time
 from typing import Callable
+from src.config import HOTKEY_DEBOUNCE_DELAY
 
 
 class HotkeyManager:
     """Manages global hotkey detection using the keyboard library."""
 
-    def __init__(self):
-        """Initialize the hotkey manager."""
+    def __init__(self, debounce_delay: float = HOTKEY_DEBOUNCE_DELAY):
+        """Initialize the hotkey manager.
+
+        Args:
+            debounce_delay: Minimum delay between hotkey triggers in seconds (default from config)
+        """
         self.registered_hotkeys = []
         self.running = False
+        self._last_trigger_time = {}  # Track last trigger time per hotkey for debouncing
+        self._debounce_delay = debounce_delay  # Minimum delay between triggers in seconds
 
     def register_hotkey(self, hotkey: str, callback: Callable):
         """
-        Register a global hotkey.
+        Register a global hotkey with debouncing to prevent double triggers.
 
         Args:
             hotkey: Hotkey string (e.g., 'ctrl+shift+i')
@@ -32,10 +39,22 @@ class HotkeyManager:
             except:
                 pass
 
-            # Register the hotkey with the keyboard library
-            keyboard.add_hotkey(hotkey, callback, suppress=False)
+            # Create a debounced wrapper for the callback
+            def debounced_callback():
+                current_time = time.time()
+                last_time = self._last_trigger_time.get(hotkey, 0)
+
+                # Check if enough time has passed since last trigger
+                if current_time - last_time >= self._debounce_delay:
+                    self._last_trigger_time[hotkey] = current_time
+                    callback()
+                else:
+                    print(f"[DEBUG] Hotkey '{hotkey}' debounced (too soon: {current_time - last_time:.3f}s)")
+
+            # Register the hotkey with the keyboard library using debounced wrapper
+            keyboard.add_hotkey(hotkey, debounced_callback, suppress=False)
             self.registered_hotkeys.append(hotkey)
-            print(f"✓ Registered hotkey: {hotkey}")
+            print(f"✓ Registered hotkey: {hotkey} (with {self._debounce_delay}s debounce)")
 
             # Test if hotkey is actually registered
             if keyboard.is_pressed(hotkey.split('+')[-1]):
@@ -96,6 +115,9 @@ class HotkeyManager:
 
             # Clear the list
             self.registered_hotkeys.clear()
+
+            # Clear debounce tracking
+            self._last_trigger_time.clear()
 
             # Unhook all keyboard hooks
             keyboard.unhook_all()
