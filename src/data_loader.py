@@ -75,13 +75,27 @@ class ItemDatabase:
         """
         Get item data by ID.
 
+        For weapons/items that have tier variants (e.g., anvil_i, anvil_ii),
+        if the base ID (e.g., anvil) is not found, automatically tries with "_i" suffix.
+
         Args:
             item_id: The item's unique identifier
 
         Returns:
             Item data dictionary or None if not found
         """
-        return self.items.get(item_id)
+        # Try direct lookup first
+        item = self.items.get(item_id)
+
+        # If not found and doesn't end with tier suffix, try with "_i" suffix
+        if item is None and not item_id.endswith(('_i', '_ii', '_iii', '_iv', '_v')):
+            # Check if a tier I variant exists (for weapons/tiered items)
+            tier_i_id = f"{item_id}_i"
+            item = self.items.get(tier_i_id)
+            if item:
+                print(f"[INFO] Mapped base ID '{item_id}' -> '{tier_i_id}'")
+
+        return item
 
     def get_items_using_material(self, material_id: str) -> List[dict]:
         """
