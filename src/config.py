@@ -6,6 +6,7 @@ DEFAULT_HOTKEY = 'ctrl+shift+i'  # Hotkey to trigger item recognition
 # Image recognition settings
 ICON_SIZE = (160, 160)  # Expected size of item icons
 MATCH_THRESHOLD = 0.4  # Similarity threshold for image matching (0.0-1.0)
+MATCH_THRESHOLD_LOW = 0.3  # Lower threshold for "possible match" suggestions
 
 # Screen capture settings
 CAPTURE_SIZE = (160, 160)  # Size of the region to capture around cursor

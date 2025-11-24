@@ -17,6 +17,9 @@
       "Bash(C:UsersmstroAppDataLocalMicrosoftWindowsAppspython.exe test_settings_gui.py)",
       "Bash(C:UsersmstroAppDataLocalMicrosoftWindowsAppspython.exe test_overlay_close.py)",
       "Bash(cmd /c \"python test_overlay_close.py\")",
+      "Bash(C:UsersmstroAppDataLocalMicrosoftWindowsAppspython.exe test_improved_recognition.py)",
+      "Bash(cmd /c \"python test_improved_recognition.py\")",
+      "Bash(powershell -Command:*)"
       "Bash(pip install:*)",
       "Bash(powershell -Command:*)",
       "Bash(cmd /c \"dist\\ArcHelperDebug.exe\")"

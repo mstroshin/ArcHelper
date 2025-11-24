@@ -3,13 +3,13 @@
 import cv2
 import numpy as np
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from PIL import Image
-from src.config import MATCH_THRESHOLD, ICON_SIZE
+from src.config import MATCH_THRESHOLD, MATCH_THRESHOLD_LOW, ICON_SIZE
 
 
 class ItemRecognizer:
-    """Recognizes items from captured images using template matching."""
+    """Recognizes items from captured images using advanced multi-method template matching."""
 
     def __init__(self, data_dir, database):
         """
@@ -24,9 +24,19 @@ class ItemRecognizer:
         self.database = database
         self.templates = {}  # item_id -> (template_image, template_gray, template_hist)
 
-        # Initialize ORB detector for feature-based matching
+        # Initialize feature detectors for advanced matching
         self.orb = cv2.ORB_create(nfeatures=500)
-        self.template_features = {}  # item_id -> (keypoints, descriptors)
+
+        # Try to initialize SIFT (more accurate than ORB, but requires opencv-contrib-python)
+        try:
+            self.sift = cv2.SIFT_create(nfeatures=500)
+            self.use_sift = True
+            print("SIFT detector initialized successfully")
+        except Exception as e:
+            self.use_sift = False
+            print(f"SIFT not available (requires opencv-contrib-python): {e}")
+
+        self.template_features = {}  # item_id -> (orb_desc, sift_desc)
 
     def load_templates(self):
         """Load all item icon templates from the Images directory."""
@@ -70,12 +80,23 @@ class ItemRecognizer:
                 hist = cv2.normalize(hist, hist).flatten()
 
                 # Extract ORB features
-                keypoints, descriptors = self.orb.detectAndCompute(template_gray_eq, None)
+                orb_kp, orb_desc = self.orb.detectAndCompute(template_gray_eq, None)
+
+                # Extract SIFT features if available
+                sift_kp, sift_desc = None, None
+                if self.use_sift:
+                    try:
+                        sift_kp, sift_desc = self.sift.detectAndCompute(template_gray_eq, None)
+                    except Exception:
+                        pass
 
                 # Store all matching data
                 self.templates[item_id] = (template, template_gray, template_gray_eq, hist)
-                if descriptors is not None:
-                    self.template_features[item_id] = (keypoints, descriptors)
+                if orb_desc is not None or sift_desc is not None:
+                    self.template_features[item_id] = {
+                        'orb': (orb_kp, orb_desc),
+                        'sift': (sift_kp, sift_desc)
+                    }
 
                 loaded_count += 1
 
@@ -86,7 +107,7 @@ class ItemRecognizer:
 
     def _calculate_match_score(self, image_gray, image_gray_eq, image_hist,
                                 template_gray, template_gray_eq, template_hist,
-                                item_id) -> float:
+                                item_id, orb_features=None, sift_features=None) -> Tuple[float, dict]:
         """
         Calculate comprehensive match score using multiple methods.
 
@@ -98,69 +119,95 @@ class ItemRecognizer:
             template_gray_eq: Histogram-equalized template
             template_hist: Color histogram of template
             item_id: Template item ID for feature matching
+            orb_features: Pre-computed ORB features for input image (optional)
+            sift_features: Pre-computed SIFT features for input image (optional)
 
         Returns:
-            Combined match score (0.0-1.0)
+            Tuple of (combined match score, detailed scores dict)
         """
         scores = []
         weights = []
+        score_details = {}
 
-        # 1. Template matching with normalized correlation (original method)
+        # 1. Quick histogram pre-filter to skip obviously wrong matches
+        hist_score = cv2.compareHist(image_hist, template_hist, cv2.HISTCMP_CORREL)
+        score_details['histogram'] = hist_score
+
+        # If histogram similarity is too low, skip expensive computations
+        if hist_score < 0.3:
+            return 0.0, score_details
+
+        # 2. Template matching with normalized correlation
         result = cv2.matchTemplate(image_gray, template_gray, cv2.TM_CCOEFF_NORMED)
         _, score1, _, _ = cv2.minMaxLoc(result)
         scores.append(score1)
-        weights.append(0.25)
+        weights.append(0.20)
+        score_details['template_ccoeff'] = score1
 
-        # 2. Template matching with correlation coefficient
+        # 3. Template matching with correlation coefficient
         result = cv2.matchTemplate(image_gray, template_gray, cv2.TM_CCORR_NORMED)
         _, score2, _, _ = cv2.minMaxLoc(result)
         scores.append(score2)
-        weights.append(0.15)
+        weights.append(0.10)
+        score_details['template_ccorr'] = score2
 
-        # 3. Template matching on equalized images (lighting invariant)
+        # 4. Template matching on equalized images (lighting invariant)
         result = cv2.matchTemplate(image_gray_eq, template_gray_eq, cv2.TM_CCOEFF_NORMED)
         _, score3, _, _ = cv2.minMaxLoc(result)
         scores.append(score3)
-        weights.append(0.30)
+        weights.append(0.25)
+        score_details['template_equalized'] = score3
 
-        # 4. Histogram comparison (color similarity)
-        hist_score = cv2.compareHist(image_hist, template_hist, cv2.HISTCMP_CORREL)
+        # 5. Histogram comparison (already computed)
         scores.append(hist_score)
         weights.append(0.15)
 
-        # 5. Feature-based matching with ORB
-        if item_id in self.template_features:
+        # 6. ORB feature matching
+        orb_score = 0.0
+        if item_id in self.template_features and orb_features is not None:
             try:
-                kp_img, desc_img = self.orb.detectAndCompute(image_gray_eq, None)
-                kp_tpl, desc_tpl = self.template_features[item_id]
+                kp_img, desc_img = orb_features
+                template_features = self.template_features[item_id]
+                kp_tpl, desc_tpl = template_features['orb']
 
-                if desc_img is not None and desc_tpl is not None and len(desc_img) > 0 and len(kp_img) > 0:
-                    # Use BFMatcher for matching
+                if desc_img is not None and desc_tpl is not None and len(desc_img) > 0:
                     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
                     matches = bf.match(desc_img, desc_tpl)
 
-                    # Calculate feature match score based on good matches
                     if len(matches) > 0:
-                        # Sort by distance and take best matches
                         matches = sorted(matches, key=lambda x: x.distance)
                         good_matches = [m for m in matches if m.distance < 50]
-
-                        # Score based on ratio of good matches
-                        feature_score = min(1.0, len(good_matches) / max(10, len(kp_tpl) * 0.3))
-                        scores.append(feature_score)
-                        weights.append(0.15)
-                    else:
-                        scores.append(0.0)
-                        weights.append(0.15)
-                else:
-                    scores.append(0.0)
-                    weights.append(0.15)
+                        orb_score = min(1.0, len(good_matches) / max(10, len(kp_tpl) * 0.3))
             except Exception:
-                scores.append(0.0)
-                weights.append(0.15)
-        else:
-            scores.append(0.0)
-            weights.append(0.15)
+                pass
+
+        scores.append(orb_score)
+        weights.append(0.15)
+        score_details['orb_features'] = orb_score
+
+        # 7. SIFT feature matching (more accurate than ORB)
+        sift_score = 0.0
+        if self.use_sift and item_id in self.template_features and sift_features is not None:
+            try:
+                kp_img, desc_img = sift_features
+                template_features = self.template_features[item_id]
+                kp_tpl, desc_tpl = template_features['sift']
+
+                if desc_img is not None and desc_tpl is not None and len(desc_img) > 0:
+                    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+                    matches = bf.match(desc_img, desc_tpl)
+
+                    if len(matches) > 0:
+                        matches = sorted(matches, key=lambda x: x.distance)
+                        # SIFT uses different distance metric
+                        good_matches = [m for m in matches if m.distance < 200]
+                        sift_score = min(1.0, len(good_matches) / max(10, len(kp_tpl) * 0.3))
+            except Exception:
+                pass
+
+        scores.append(sift_score)
+        weights.append(0.15)
+        score_details['sift_features'] = sift_score
 
         # Calculate weighted average
         total_weight = sum(weights)
@@ -169,7 +216,8 @@ class ItemRecognizer:
         else:
             final_score = 0.0
 
-        return max(0.0, min(1.0, final_score))
+        score_details['final'] = final_score
+        return max(0.0, min(1.0, final_score)), score_details
 
     def recognize(self, image: np.ndarray, cancel_event=None) -> Optional[str]:
         """
@@ -177,6 +225,7 @@ class ItemRecognizer:
 
         Args:
             image: The captured image (numpy array from OpenCV)
+            cancel_event: Event to signal cancellation
 
         Returns:
             item_id if recognized with confidence above threshold, None otherwise
@@ -189,11 +238,20 @@ class ItemRecognizer:
             if image.shape[:2] != (ICON_SIZE[1], ICON_SIZE[0]):
                 image = cv2.resize(image, ICON_SIZE)
 
-            # Prepare image for matching
+            # Prepare image for matching (computed once)
             image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             image_gray_eq = cv2.equalizeHist(image_gray)
             image_hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
             image_hist = cv2.normalize(image_hist, image_hist).flatten()
+
+            # Pre-compute features once for all comparisons
+            orb_features = self.orb.detectAndCompute(image_gray_eq, None)
+            sift_features = None
+            if self.use_sift:
+                try:
+                    sift_features = self.sift.detectAndCompute(image_gray_eq, None)
+                except Exception:
+                    pass
 
             best_match_id = None
             best_match_score = 0.0
@@ -202,10 +260,11 @@ class ItemRecognizer:
             for item_id, (template, template_gray, template_gray_eq, template_hist) in self.templates.items():
                 if cancel_event is not None and getattr(cancel_event, 'is_set', lambda: False)():
                     return None
-                score = self._calculate_match_score(
+
+                score, _ = self._calculate_match_score(
                     image_gray, image_gray_eq, image_hist,
                     template_gray, template_gray_eq, template_hist,
-                    item_id
+                    item_id, orb_features, sift_features
                 )
 
                 if score > best_match_score:
@@ -214,23 +273,29 @@ class ItemRecognizer:
 
             # Return match if above threshold
             if best_match_score >= MATCH_THRESHOLD:
+                print(f"Recognized: {best_match_id} (confidence: {best_match_score:.3f})")
                 return best_match_id
+            else:
+                print(f"No match above threshold. Best: {best_match_id} ({best_match_score:.3f})")
 
             return None
 
         except Exception as e:
             print(f"Error during recognition: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
-    def recognize_with_score(self, image: np.ndarray, cancel_event=None) -> Optional[Tuple[str, float]]:
+    def recognize_with_score(self, image: np.ndarray, cancel_event=None) -> Optional[Tuple[str, float, dict]]:
         """
-        Recognize an item and return both item_id and confidence score.
+        Recognize an item and return item_id, confidence score, and detailed scores.
 
         Args:
             image: The captured image (numpy array from OpenCV)
+            cancel_event: Event to signal cancellation
 
         Returns:
-            Tuple of (item_id, confidence_score) if recognized, None otherwise
+            Tuple of (item_id, confidence_score, score_details) if recognized, None otherwise
         """
         if image is None or len(self.templates) == 0:
             return None
@@ -240,49 +305,64 @@ class ItemRecognizer:
             if image.shape[:2] != (ICON_SIZE[1], ICON_SIZE[0]):
                 image = cv2.resize(image, ICON_SIZE)
 
-            # Prepare image for matching
+            # Prepare image for matching (computed once)
             image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             image_gray_eq = cv2.equalizeHist(image_gray)
             image_hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
             image_hist = cv2.normalize(image_hist, image_hist).flatten()
 
+            # Pre-compute features once
+            orb_features = self.orb.detectAndCompute(image_gray_eq, None)
+            sift_features = None
+            if self.use_sift:
+                try:
+                    sift_features = self.sift.detectAndCompute(image_gray_eq, None)
+                except Exception:
+                    pass
+
             best_match_id = None
             best_match_score = 0.0
+            best_score_details = {}
 
-            # Compare against all templates using comprehensive scoring
+            # Compare against all templates
             for item_id, (template, template_gray, template_gray_eq, template_hist) in self.templates.items():
                 if cancel_event is not None and getattr(cancel_event, 'is_set', lambda: False)():
                     return None
-                score = self._calculate_match_score(
+
+                score, details = self._calculate_match_score(
                     image_gray, image_gray_eq, image_hist,
                     template_gray, template_gray_eq, template_hist,
-                    item_id
+                    item_id, orb_features, sift_features
                 )
 
                 if score > best_match_score:
                     best_match_score = score
                     best_match_id = item_id
+                    best_score_details = details
 
             # Return match if above threshold
             if best_match_score >= MATCH_THRESHOLD and best_match_id:
-                return (best_match_id, best_match_score)
+                return (best_match_id, best_match_score, best_score_details)
 
             return None
 
         except Exception as e:
             print(f"Error during recognition: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
-    def get_top_matches(self, image: np.ndarray, top_n: int = 5, cancel_event=None) -> list:
+    def get_top_matches(self, image: np.ndarray, top_n: int = 5, cancel_event=None) -> List[Tuple[str, float, dict]]:
         """
-        Get the top N matching items for a captured image using advanced matching.
+        Get the top N matching items for a captured image with detailed scores.
 
         Args:
             image: The captured image (numpy array from OpenCV)
             top_n: Number of top matches to return
+            cancel_event: Event to signal cancellation
 
         Returns:
-            List of tuples [(item_id, confidence_score), ...] sorted by score
+            List of tuples [(item_id, confidence_score, score_details), ...] sorted by score
         """
         if image is None or len(self.templates) == 0:
             return []
@@ -292,29 +372,105 @@ class ItemRecognizer:
             if image.shape[:2] != (ICON_SIZE[1], ICON_SIZE[0]):
                 image = cv2.resize(image, ICON_SIZE)
 
-            # Prepare image for matching
+            # Prepare image for matching (computed once)
             image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             image_gray_eq = cv2.equalizeHist(image_gray)
             image_hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
             image_hist = cv2.normalize(image_hist, image_hist).flatten()
 
+            # Pre-compute features once
+            orb_features = self.orb.detectAndCompute(image_gray_eq, None)
+            sift_features = None
+            if self.use_sift:
+                try:
+                    sift_features = self.sift.detectAndCompute(image_gray_eq, None)
+                except Exception:
+                    pass
+
             matches = []
 
-            # Compare against all templates using comprehensive scoring
+            # Compare against all templates
             for item_id, (template, template_gray, template_gray_eq, template_hist) in self.templates.items():
                 if cancel_event is not None and getattr(cancel_event, 'is_set', lambda: False)():
                     return []
-                score = self._calculate_match_score(
+
+                score, details = self._calculate_match_score(
                     image_gray, image_gray_eq, image_hist,
                     template_gray, template_gray_eq, template_hist,
-                    item_id
+                    item_id, orb_features, sift_features
                 )
-                matches.append((item_id, score))
+                matches.append((item_id, score, details))
 
             # Sort by score (descending) and return top N
             matches.sort(key=lambda x: x[1], reverse=True)
+
+            # Print top matches for debugging
+            print(f"\nTop {min(top_n, len(matches))} matches:")
+            for i, (item_id, score, details) in enumerate(matches[:top_n], 1):
+                print(f"  {i}. {item_id}: {score:.3f}")
+                if details:
+                    print(f"     Details: hist={details.get('histogram', 0):.2f}, "
+                          f"eq={details.get('template_equalized', 0):.2f}, "
+                          f"orb={details.get('orb_features', 0):.2f}, "
+                          f"sift={details.get('sift_features', 0):.2f}")
+
             return matches[:top_n]
 
         except Exception as e:
             print(f"Error getting top matches: {e}")
+            import traceback
+            traceback.print_exc()
             return []
+
+    def recognize_adaptive(self, image: np.ndarray, cancel_event=None) -> Optional[dict]:
+        """
+        Recognize an item with adaptive threshold - returns confident or possible matches.
+
+        Args:
+            image: The captured image (numpy array from OpenCV)
+            cancel_event: Event to signal cancellation
+
+        Returns:
+            Dict with 'status' ('confident', 'possible', 'failed'), 'item_id', 'confidence', 'alternatives'
+        """
+        if image is None or len(self.templates) == 0:
+            return {'status': 'failed', 'item_id': None, 'confidence': 0.0, 'alternatives': []}
+
+        try:
+            # Get top 3 matches
+            top_matches = self.get_top_matches(image, top_n=3, cancel_event=cancel_event)
+
+            if not top_matches:
+                return {'status': 'failed', 'item_id': None, 'confidence': 0.0, 'alternatives': []}
+
+            best_match_id, best_score, best_details = top_matches[0]
+
+            # Prepare result
+            result = {
+                'item_id': best_match_id,
+                'confidence': best_score,
+                'score_details': best_details,
+                'alternatives': [(item_id, score) for item_id, score, _ in top_matches[1:3]]
+            }
+
+            # Determine status based on adaptive thresholds
+            if best_score >= MATCH_THRESHOLD:
+                result['status'] = 'confident'
+                print(f"✓ Confident match: {best_match_id} ({best_score:.1%})")
+            elif best_score >= MATCH_THRESHOLD_LOW:
+                result['status'] = 'possible'
+                print(f"? Possible match: {best_match_id} ({best_score:.1%})")
+                if len(result['alternatives']) > 0:
+                    alt_text = ', '.join([f"{id} ({s:.1%})" for id, s in result['alternatives']])
+                    print(f"  Alternatives: {alt_text}")
+            else:
+                result['status'] = 'failed'
+                print(f"✗ No good match. Best: {best_match_id} ({best_score:.1%})")
+
+            return result
+
+        except Exception as e:
+            print(f"Error during adaptive recognition: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'status': 'failed', 'item_id': None, 'confidence': 0.0, 'alternatives': []}

@@ -217,12 +217,18 @@ class ArcHelper:
                     return
 
                 if result:
-                    item_id, score = result
+                    item_id, score, details = result
                     # Get item data
                     item_data = self.database.get_item(item_id)
 
                     if item_data:
                         print(f"[INFO] Recognized: {item_data['name']['en']} (confidence: {score:.2%})")
+                        # Log detailed scores for debugging
+                        if details:
+                            print(f"[DEBUG] Score breakdown: hist={details.get('histogram', 0):.2f}, "
+                                  f"eq={details.get('template_equalized', 0):.2f}, "
+                                  f"orb={details.get('orb_features', 0):.2f}, "
+                                  f"sift={details.get('sift_features', 0):.2f}")
 
                         # Show overlay with item information (runs in thread to avoid blocking)
                         self.overlay.show(item_data, duration=10)
