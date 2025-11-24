@@ -575,15 +575,6 @@ class OverlayUI:
             self._add_material_section(content, get_text(self.language, 'crafting_recipe'), item_data['recipe'],
                                       COLORS['warning'])
 
-            if 'craftBench' in item_data:
-                bench_frame = tk.Frame(content, bg=COLORS['bg_light'], bd=0)
-                bench_frame.pack(fill=tk.X, pady=(0, 12), padx=0)
-
-                bench_label = tk.Label(bench_frame, text=f"📍 {get_text(self.language, 'requires')}: {item_data['craftBench']}",
-                                      font=('Segoe UI', 12), fg=COLORS['accent'],
-                                      bg=COLORS['bg_light'], padx=12, pady=6)
-                bench_label.pack(anchor='w')
-
         # Recycles into (skip if empty)
         if 'recyclesInto' in item_data and item_data['recyclesInto'] and len(item_data['recyclesInto']) > 0:
             self._add_material_section(content, get_text(self.language, 'recycles_into'), item_data['recyclesInto'],
@@ -598,6 +589,11 @@ class OverlayUI:
         items_using = self.database.get_items_using_material(item_data['id'])
         if items_using:
             self._add_crafting_uses_section(content, items_using)
+
+        # Hideout usage (bench requirements)
+        hideout_usage = self.database.get_hideout_usage(item_data['id']) if hasattr(self.database, 'get_hideout_usage') else []
+        if hideout_usage:
+            self._add_hideout_usage_section(content, hideout_usage)
 
         # Close instructions
         close_label = tk.Label(content, text=get_text(self.language, 'close_instruction'),
@@ -738,6 +734,41 @@ class OverlayUI:
             arrow.bind('<Button-1>', lambda e, f=_spawn_used: f())
             name_label.bind('<Button-1>', lambda e, f=_spawn_used: f())
             badge.bind('<Button-1>', lambda e, f=_spawn_used: f())
+
+    def _add_hideout_usage_section(self, parent, usage_entries):
+        """Add section showing in which hideout benches (levels) the item is required."""
+        header_frame = tk.Frame(parent, bg=COLORS['bg_dark'])
+        header_frame.pack(fill=tk.X, pady=(0, 8))
+        header_text = get_text(self.language, 'hideout_uses_count', count=len(usage_entries))
+        header = tk.Label(header_frame, text=header_text, font=('Segoe UI', 14, 'bold'),
+                          fg=COLORS['accent'], bg=COLORS['bg_dark'])
+        header.pack(anchor='w')
+
+        card = self._create_card_frame(parent)
+        # Group by bench to make output cleaner
+        by_bench = {}
+        for entry in usage_entries:
+            bench_id = entry.get('bench_id')
+            by_bench.setdefault(bench_id, []).append(entry)
+
+        for bench_id, entries in by_bench.items():
+            bench = self.database.get_hideout_bench(bench_id) if hasattr(self.database, 'get_hideout_bench') else None
+            bench_name = bench.get('name', {}).get(self.language, bench_id) if bench else bench_id
+            # Bench header row
+            bench_row = tk.Frame(card, bg=COLORS['bg_medium'])
+            bench_row.pack(fill=tk.X, pady=(4,2))
+            bench_label = tk.Label(bench_row, text=f"🏠 {bench_name}", font=('Segoe UI', 12, 'bold'),
+                                   fg=COLORS['accent'], bg=COLORS['bg_medium'])
+            bench_label.pack(side=tk.LEFT)
+            # Individual level requirements
+            for e in entries:
+                lvl = e.get('level')
+                qty = e.get('quantity')
+                req_row = tk.Frame(card, bg=COLORS['bg_medium'])
+                req_row.pack(fill=tk.X, pady=1)
+                lvl_label = tk.Label(req_row, text=f"• L{lvl} x{qty}", font=('Segoe UI', 11),
+                                     fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
+                lvl_label.pack(side=tk.LEFT, padx=(18,0))
 
     def _make_draggable(self, win, widget):
         """Enable dragging of a toplevel window using the given widget as handle."""

@@ -19,6 +19,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 Salvages Into (in combat)',
         'used_to_craft': '🔧 Used to Craft',
         'used_to_craft_count': '🔧 Used to Craft ({count} items)',
+        'hideout_uses_count': '🏠 Hideout Uses ({count})',
 
         # Instructions
         'close_instruction': 'Press ESC or click outside to close',
@@ -62,6 +63,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 Разборка (в бою)',
         'used_to_craft': '🔧 Используется для крафта',
         'used_to_craft_count': '🔧 Используется для крафта ({count} предм.)',
+        'hideout_uses_count': '🏠 Используется в убежище ({count})',
 
         # Instructions
         'close_instruction': 'Нажмите ESC или кликните вне окна',
@@ -105,6 +107,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 Abbaut zu (im Kampf)',
         'used_to_craft': '🔧 Verwendet für',
         'used_to_craft_count': '🔧 Verwendet für ({count} Gegenstände)',
+        'hideout_uses_count': '🏠 Unterschlupf Verwendung ({count})',
 
         # Instructions
         'close_instruction': 'ESC drücken oder außerhalb klicken',
@@ -148,6 +151,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 Récupération (en combat)',
         'used_to_craft': '🔧 Utilisé pour fabriquer',
         'used_to_craft_count': '🔧 Utilisé pour fabriquer ({count} objets)',
+        'hideout_uses_count': '🏠 Utilisé dans l’abri ({count})',
 
         # Instructions
         'close_instruction': 'Appuyez sur ESC ou cliquez à l\'extérieur',
@@ -191,6 +195,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 Se desmonta en (en combate)',
         'used_to_craft': '🔧 Usado para fabricar',
         'used_to_craft_count': '🔧 Usado para fabricar ({count} objetos)',
+        'hideout_uses_count': '🏠 Uso en escondite ({count})',
 
         # Instructions
         'close_instruction': 'Presione ESC o haga clic afuera',
@@ -234,6 +239,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 Desmonta em (em combate)',
         'used_to_craft': '🔧 Usado para fabricar',
         'used_to_craft_count': '🔧 Usado para fabricar ({count} itens)',
+        'hideout_uses_count': '🏠 Uso no abrigo ({count})',
 
         # Instructions
         'close_instruction': 'Pressione ESC ou clique fora',
@@ -277,6 +283,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 Rozbieranie na (w walce)',
         'used_to_craft': '🔧 Używane do wytworzenia',
         'used_to_craft_count': '🔧 Używane do wytworzenia ({count} przedmiotów)',
+        'hideout_uses_count': '🏠 Użycie w kryjówce ({count})',
 
         # Instructions
         'close_instruction': 'Naciśnij ESC lub kliknij na zewnątrz',
@@ -320,6 +327,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 Smonta in (in combattimento)',
         'used_to_craft': '🔧 Usato per fabbricare',
         'used_to_craft_count': '🔧 Usato per fabbricare ({count} oggetti)',
+        'hideout_uses_count': '🏠 Usato nel rifugio ({count})',
 
         # Instructions
         'close_instruction': 'Premi ESC o clicca fuori',
@@ -344,6 +352,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 解体 (戦闘中)',
         'used_to_craft': '🔧 クラフトに使用',
         'used_to_craft_count': '🔧 クラフトに使用 ({count}個)',
+        'hideout_uses_count': '🏠 隠れ家で必要 ({count})',
 
         # Instructions
         'close_instruction': 'ESCキーまたは外側をクリック',
@@ -368,6 +377,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 拆解为 (战斗中)',
         'used_to_craft': '🔧 用于制作',
         'used_to_craft_count': '🔧 用于制作 ({count}个物品)',
+        'hideout_uses_count': '🏠 藏身处需求 ({count})',
 
         # Instructions
         'close_instruction': '按ESC或点击外部',
@@ -392,6 +402,7 @@ UI_TEXTS = {
         'salvages_into': '🔧 拆解為 (戰鬥中)',
         'used_to_craft': '🔧 用於製作',
         'used_to_craft_count': '🔧 用於製作 ({count}個物品)',
+        'hideout_uses_count': '🏠 藏身處需求 ({count})',
 
         # Instructions
         'close_instruction': '按ESC或點擊外部',
