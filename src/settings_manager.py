@@ -43,6 +43,7 @@ class SettingsManager:
             "language": DEFAULT_LANGUAGE,
             "capture_size": list(CAPTURE_SIZE),  # [width, height]
             "recognition_hotkey": DEFAULT_HOTKEY,
+            "marked_items": [],  # List of item IDs marked as needed/not needed
         }
 
     def load(self) -> bool:
@@ -174,3 +175,19 @@ class SettingsManager:
     def reset_to_defaults(self):
         """Reset all settings to defaults."""
         self.settings = self._load_default_settings()
+
+    def is_item_marked(self, item_id: str) -> bool:
+        """Check if an item is marked."""
+        return item_id in self.settings.get("marked_items", [])
+
+    def mark_item(self, item_id: str):
+        """Mark an item as needed."""
+        if "marked_items" not in self.settings:
+            self.settings["marked_items"] = []
+        if item_id not in self.settings["marked_items"]:
+            self.settings["marked_items"].append(item_id)
+
+    def unmark_item(self, item_id: str):
+        """Unmark an item."""
+        if "marked_items" in self.settings and item_id in self.settings["marked_items"]:
+            self.settings["marked_items"].remove(item_id)

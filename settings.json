@@ -4,5 +4,8 @@
     160,
     160
   ],
-  "recognition_hotkey": "ctrl+d"
+  "recognition_hotkey": "ctrl+d",
+  "marked_items": [
+    "durable_cloth"
+  ]
 }

@@ -110,7 +110,7 @@ class ArcHelper:
 
         # Initialize overlay UI with language from settings
         flush_print("\nInitializing overlay UI...")
-        self.overlay = OverlayUI(self.database, language=self.settings_manager.get_language())
+        self.overlay = OverlayUI(self.database, settings_manager=self.settings_manager, language=self.settings_manager.get_language())
         flush_print(f"✓ Overlay UI ready (Language: {self.settings_manager.get_language()})")
 
         # Setup hotkey manager

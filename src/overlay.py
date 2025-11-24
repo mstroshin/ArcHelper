@@ -52,15 +52,17 @@ class OverlayUI:
     created when clicking items/materials inside any overlay window.
     """
 
-    def __init__(self, database, language=DEFAULT_LANGUAGE):
+    def __init__(self, database, settings_manager=None, language=DEFAULT_LANGUAGE):
         """
         Initialize the overlay UI.
 
         Args:
             database: ItemDatabase instance
+            settings_manager: SettingsManager instance for marking items
             language: Language code for item names/descriptions
         """
         self.database = database
+        self.settings_manager = settings_manager
         self.language = language
         self.root = None
         # Primary window (opened via show)
@@ -446,6 +448,7 @@ class OverlayUI:
 
         # Make window draggable by header
         self._make_draggable(win, header)
+
         # Close button chooses correct close behavior
         close_btn = tk.Label(header, text="✕", font=('Arial', 17, 'bold'),
                              fg=COLORS['text_secondary'], bg=COLORS['bg_medium'],
@@ -508,12 +511,62 @@ class OverlayUI:
         rarity = item_data.get('rarity', 'common').lower()
         rarity_color = RARITY_COLORS.get(rarity, RARITY_COLORS['default'])
 
+        # Item name with checkbox on the right
+        name_row = tk.Frame(content, bg=COLORS['bg_dark'])
+        name_row.pack(fill=tk.X, anchor='w', pady=(0, 8))
+
         # Item name with rarity color
         name = item_data.get('name', {}).get(self.language, item_data.get('id', 'Unknown'))
-        name_label = tk.Label(content, text=name, font=('Segoe UI', 19, 'bold'),
+        name_label = tk.Label(name_row, text=name, font=('Segoe UI', 19, 'bold'),
                              fg=rarity_color, bg=COLORS['bg_dark'],
-                             wraplength=OVERLAY_WIDTH-60, justify='left')
-        name_label.pack(anchor='w', pady=(0, 8))
+                             wraplength=OVERLAY_WIDTH-150, justify='left')
+        name_label.pack(side=tk.LEFT, anchor='w')
+
+        # Checkbox for marking items (if settings_manager is available) - right of name
+        if self.settings_manager and item_data:
+            item_id = item_data.get('id')
+            is_marked = self.settings_manager.is_item_marked(item_id)
+
+            # Create checkbox frame
+            checkbox_frame = tk.Frame(name_row, bg=COLORS['bg_dark'], cursor='hand2')
+            checkbox_frame.pack(side=tk.RIGHT, padx=(10, 0))
+
+            # Checkbox label (visual indicator)
+            checkbox_label = tk.Label(checkbox_frame,
+                                     text="✓" if is_marked else "☐",
+                                     font=('Arial', 16, 'bold'),
+                                     fg=COLORS['success'] if is_marked else COLORS['text_tertiary'],
+                                     bg=COLORS['bg_dark'],
+                                     cursor='hand2')
+            checkbox_label.pack(side=tk.LEFT, padx=(0, 6))
+
+            # Text label "Ищу"
+            text_label = tk.Label(checkbox_frame,
+                                 text="Ищу",
+                                 font=('Segoe UI', 12),
+                                 fg=COLORS['text_secondary'],
+                                 bg=COLORS['bg_dark'],
+                                 cursor='hand2')
+            text_label.pack(side=tk.LEFT)
+
+            # Toggle function
+            def toggle_mark(event=None):
+                nonlocal is_marked
+                if self.settings_manager.is_item_marked(item_id):
+                    self.settings_manager.unmark_item(item_id)
+                    is_marked = False
+                    checkbox_label.config(text="☐", fg=COLORS['text_tertiary'])
+                else:
+                    self.settings_manager.mark_item(item_id)
+                    is_marked = True
+                    checkbox_label.config(text="✓", fg=COLORS['success'])
+                # Save settings immediately
+                self.settings_manager.save()
+
+            # Bind click to all elements
+            checkbox_frame.bind('<Button-1>', toggle_mark)
+            checkbox_label.bind('<Button-1>', toggle_mark)
+            text_label.bind('<Button-1>', toggle_mark)
 
         # Item image (if available)
         img = self._load_item_image(item_data.get('id'))
