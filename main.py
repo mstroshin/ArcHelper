@@ -116,9 +116,9 @@ class ArcHelper:
         self.overlay = OverlayUI(self.database, settings_manager=self.settings_manager, language=self.settings_manager.get_language())
         flush_print(f"✓ Overlay UI ready (Language: {self.settings_manager.get_language()})")
 
-        # Initialize capture frame
+        # Initialize capture frame with overlay's root window to prevent extra windows
         flush_print("\nInitializing capture frame...")
-        self.capture_frame = CaptureFrame()
+        self.capture_frame = CaptureFrame(parent=self.overlay.root)
         flush_print("✓ Capture frame ready")
 
         # Setup hotkey manager
@@ -186,7 +186,7 @@ class ArcHelper:
                 # Show capture frame at cursor position
                 self.capture_frame.show(cursor_x, cursor_y, capture_size[0], capture_size[1], duration=0.25, auto_hide=True)
 
-                # Wait for frame to be visible (0.5 seconds)
+                # Wait for frame to be visible (0.5 seconds
                 import time
                 time.sleep(0.5)
 
@@ -203,12 +203,14 @@ class ArcHelper:
                 image = self.screen_capture.capture_at_cursor(size=inner_size)
 
                 # NOW show loading overlay after screenshot is captured
+                # Do NOT close existing overlays - allow multiple overlays to coexist
                 try:
                     self.overlay.show_loading()
                 except Exception:
                     pass
 
                 # Set overlay close callback so closing loading overlay cancels recognition
+                # This callback is only for the primary window, spawned windows don't affect recognition
                 try:
                     self.overlay.set_close_callback(cancel_event.set)
                 except Exception:

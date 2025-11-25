@@ -99,6 +99,7 @@ class OverlayUI:
                         if command == 'show':
                             self._create_overlay(*args, close_existing=True)
                         elif command == 'loading':
+                            # Close only the primary window (not spawned), then show loading
                             self._create_loading_overlay(close_existing=True)
                         elif command == 'error':
                             # args: (message,)
@@ -156,8 +157,13 @@ class OverlayUI:
         """
         self._command_queue.put(('error', (message,)))
 
-    def _close_window(self):
-        """Close the primary overlay window."""
+    def _close_window(self, invoke_callback=True):
+        """Close the primary overlay window.
+
+        Args:
+            invoke_callback: If True, invokes the close callback (cancels recognition).
+                           Set to False when replacing window programmatically.
+        """
         if self.window:
             try:
                 if self.auto_close_timer:
@@ -167,12 +173,13 @@ class OverlayUI:
             except Exception:
                 pass
             self.window = None
-            # Invoke close callback (used to cancel recognition) if set
-            try:
-                if self._close_callback:
-                    self._close_callback()
-            except Exception:
-                pass
+            # Invoke close callback (used to cancel recognition) only if requested
+            if invoke_callback:
+                try:
+                    if self._close_callback:
+                        self._close_callback()
+                except Exception:
+                    pass
 
     def _destroy_spawned(self, win):
         """Destroy a spawned window and remove it from tracking."""
@@ -191,7 +198,8 @@ class OverlayUI:
             close_existing: if True, replaces primary window; else spawns new window
         """
         if close_existing:
-            self._close_window()
+            # Don't invoke callback when replacing window programmatically
+            self._close_window(invoke_callback=False)
             win = tk.Toplevel(self.root)
             self.window = win
         else:
@@ -226,7 +234,8 @@ class OverlayUI:
     def _create_loading_overlay(self, close_existing=True):
         """Create and display a loading overlay while recognition processes."""
         if close_existing:
-            self._close_window()
+            # Don't invoke callback when replacing window programmatically
+            self._close_window(invoke_callback=False)
             win = tk.Toplevel(self.root)
             self.window = win
         else:
@@ -301,7 +310,8 @@ class OverlayUI:
     def _create_error_overlay(self, message: str, close_existing=True):
         """Create and display an error overlay after loader when something fails."""
         if close_existing:
-            self._close_window()
+            # Don't invoke callback when replacing window programmatically
+            self._close_window(invoke_callback=False)
             win = tk.Toplevel(self.root)
             self.window = win
         else:

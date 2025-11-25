@@ -20,6 +20,7 @@ class HotkeyManager:
         self.running = False
         self._last_trigger_time = {}  # Track last trigger time per hotkey for debouncing
         self._debounce_delay = debounce_delay  # Minimum delay between triggers in seconds
+        self._hotkey_pressed = {}  # Track if hotkey is currently being held down
 
     def register_hotkey(self, hotkey: str, callback: Callable):
         """
@@ -39,20 +40,41 @@ class HotkeyManager:
             except:
                 pass
 
-            # Create a debounced wrapper for the callback
-            def debounced_callback():
-                current_time = time.time()
-                last_time = self._last_trigger_time.get(hotkey, 0)
+            # Initialize the pressed state for this hotkey
+            self._hotkey_pressed[hotkey] = False
 
-                # Check if enough time has passed since last trigger
-                if current_time - last_time >= self._debounce_delay:
-                    self._last_trigger_time[hotkey] = current_time
-                    callback()
+            # Create a wrapper that only triggers once per key press (not while held)
+            def single_trigger_callback():
+                # Only trigger if this is the first press (not being held)
+                if not self._hotkey_pressed.get(hotkey, False):
+                    current_time = time.time()
+                    last_time = self._last_trigger_time.get(hotkey, 0)
+
+                    # Check if enough time has passed since last trigger
+                    if current_time - last_time >= self._debounce_delay:
+                        self._hotkey_pressed[hotkey] = True  # Mark as pressed
+                        self._last_trigger_time[hotkey] = current_time
+                        callback()
+
+                        # Start a thread to wait for key release
+                        def wait_for_release():
+                            # Wait until all keys in the combination are released
+                            keys = hotkey.split('+')
+                            while any(keyboard.is_pressed(key) for key in keys):
+                                time.sleep(0.01)
+                            # Reset the pressed state once released
+                            self._hotkey_pressed[hotkey] = False
+                            print(f"[DEBUG] Hotkey '{hotkey}' released and ready for next press")
+
+                        threading.Thread(target=wait_for_release, daemon=True).start()
+                    else:
+                        print(f"[DEBUG] Hotkey '{hotkey}' debounced (too soon: {current_time - last_time:.3f}s)")
                 else:
-                    print(f"[DEBUG] Hotkey '{hotkey}' debounced (too soon: {current_time - last_time:.3f}s)")
+                    # Hotkey is being held down - ignore this trigger
+                    pass
 
-            # Register the hotkey with the keyboard library using debounced wrapper
-            keyboard.add_hotkey(hotkey, debounced_callback, suppress=False)
+            # Register the hotkey with the keyboard library using single-trigger wrapper
+            keyboard.add_hotkey(hotkey, single_trigger_callback, suppress=False)
             self.registered_hotkeys.append(hotkey)
             print(f"✓ Registered hotkey: {hotkey} (with {self._debounce_delay}s debounce)")
 
@@ -118,6 +140,9 @@ class HotkeyManager:
 
             # Clear debounce tracking
             self._last_trigger_time.clear()
+
+            # Clear pressed state tracking
+            self._hotkey_pressed.clear()
 
             # Unhook all keyboard hooks
             keyboard.unhook_all()

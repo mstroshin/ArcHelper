@@ -30,6 +30,14 @@ py script.py        # Correct
 python script.py    # Incorrect - will not work
 ```
 
+### Script Execution Policy
+**CRITICAL**: NEVER automatically run scripts (py, python, bash) after completing work unless the user explicitly requests it. Only run scripts when:
+1. The user explicitly asks to run/test the script
+2. The task specifically requires running code to verify functionality
+3. The user gives explicit permission to execute
+
+After finishing coding tasks, simply report completion - do not auto-execute.
+
 ### Dependencies (requirements.txt)
 ```
 opencv-python>=4.8.0      # Multi-method image recognition

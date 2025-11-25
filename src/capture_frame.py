@@ -9,8 +9,14 @@ from src.config import CAPTURE_FRAME_THICKNESS
 class CaptureFrame:
     """Shows a flashing frame overlay to indicate screen capture area."""
 
-    def __init__(self):
-        """Initialize capture frame."""
+    def __init__(self, parent: Optional[tk.Tk] = None):
+        """
+        Initialize capture frame.
+
+        Args:
+            parent: Parent Tk window (required to avoid creating extra windows)
+        """
+        self.parent = parent
         self.window: Optional[tk.Toplevel] = None
         self.is_showing = False
 
@@ -30,18 +36,18 @@ class CaptureFrame:
         left = x - width // 2
         top = y - height // 2
 
-        # Create window in main thread
-        self._create_window(left, top, width, height)
+        # Create window in GUI thread using after() to ensure thread safety
+        if self.parent:
+            self.parent.after(0, lambda: self._create_window(left, top, width, height, duration, auto_hide))
+        else:
+            # Fallback if no parent (shouldn't happen)
+            self._create_window(left, top, width, height, duration, auto_hide)
 
-        # Schedule auto-close after duration if requested
-        if auto_hide and self.window:
-            self.window.after(int(duration * 1000), self.hide)
-
-    def _create_window(self, left: int, top: int, width: int, height: int):
-        """Create the frame window."""
+    def _create_window(self, left: int, top: int, width: int, height: int, duration: float, auto_hide: bool):
+        """Create the frame window (must be called from GUI thread)."""
         try:
-            # Create toplevel window
-            self.window = tk.Toplevel()
+            # Create toplevel window with parent to avoid creating extra root windows
+            self.window = tk.Toplevel(self.parent)
             self.window.title("Capture Frame")
 
             # Make it borderless and always on top
@@ -84,6 +90,10 @@ class CaptureFrame:
 
             # Start flashing animation
             self._flash_animation(0)
+
+            # Schedule auto-close after duration if requested
+            if auto_hide and self.window:
+                self.window.after(int(duration * 1000), self.hide)
 
         except Exception as e:
             print(f"[ERROR] Failed to create capture frame: {e}")
@@ -141,8 +151,8 @@ def test_capture_frame():
     x = screen_width // 2
     y = screen_height // 2
 
-    # Create and show frame
-    frame = CaptureFrame()
+    # Create and show frame with parent to prevent extra window
+    frame = CaptureFrame(parent=root)
     frame.show(x, y, 160, 160, duration=2.0)  # Show for 2 seconds for testing
 
     print(f"Frame shown at ({x}, {y}) with size 160x160")
