@@ -623,20 +623,20 @@ class OverlayUI:
                                      fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
                 text_label.pack(side=tk.LEFT)
 
-        # Crafting recipe (skip if empty dict or no entries > 0)
-        if 'recipe' in item_data and item_data['recipe'] and len(item_data['recipe']) > 0:
-            self._add_material_section(content, get_text(self.language, 'crafting_recipe'), item_data['recipe'],
-                                      COLORS['warning'])
-
-        # Recycles into (skip if empty)
+        # Recycles into (skip if empty) - MOVED UP for better visibility
         if 'recyclesInto' in item_data and item_data['recyclesInto'] and len(item_data['recyclesInto']) > 0:
             self._add_material_section(content, get_text(self.language, 'recycles_into'), item_data['recyclesInto'],
                                       COLORS['success'])
 
-        # Salvages into (skip if empty)
+        # Salvages into (skip if empty) - MOVED UP for better visibility
         if 'salvagesInto' in item_data and item_data['salvagesInto'] and len(item_data['salvagesInto']) > 0:
             self._add_material_section(content, get_text(self.language, 'salvages_into'), item_data['salvagesInto'],
                                       COLORS['success'])
+
+        # Crafting recipe (skip if empty dict or no entries > 0)
+        if 'recipe' in item_data and item_data['recipe'] and len(item_data['recipe']) > 0:
+            self._add_material_section(content, get_text(self.language, 'crafting_recipe'), item_data['recipe'],
+                                      COLORS['warning'])
 
         # Used to craft (reverse mapping)
         items_using = self.database.get_items_using_material(item_data['id'])
