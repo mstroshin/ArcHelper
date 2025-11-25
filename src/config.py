@@ -11,6 +11,7 @@ MATCH_THRESHOLD_LOW = 0.3  # Lower threshold for "possible match" suggestions
 
 # Screen capture settings
 CAPTURE_SIZE = (160, 160)  # Size of the region to capture around cursor
+CAPTURE_FRAME_THICKNESS = 4  # Thickness of capture frame border in pixels
 
 # Overlay settings
 OVERLAY_WIDTH = 620

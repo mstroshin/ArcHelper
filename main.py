@@ -24,6 +24,8 @@ from src.overlay import OverlayUI
 from src.settings_manager import SettingsManager
 from src.settings_gui import SettingsGUI
 from src.localization import UI_TEXTS, get_text
+from src.capture_frame import CaptureFrame
+from src.config import CAPTURE_FRAME_THICKNESS
 
 
 def flush_print(*args, **kwargs):
@@ -56,6 +58,7 @@ class ArcHelper:
         self.hotkey_manager = None
         self.settings_manager = None
         self.settings_gui = None
+        self.capture_frame = None
 
     def on_settings_saved(self):
         """Callback when settings are saved."""
@@ -113,6 +116,11 @@ class ArcHelper:
         self.overlay = OverlayUI(self.database, settings_manager=self.settings_manager, language=self.settings_manager.get_language())
         flush_print(f"✓ Overlay UI ready (Language: {self.settings_manager.get_language()})")
 
+        # Initialize capture frame
+        flush_print("\nInitializing capture frame...")
+        self.capture_frame = CaptureFrame()
+        flush_print("✓ Capture frame ready")
+
         # Setup hotkey manager
         flush_print("\nSetting up hotkey manager...")
         self.hotkey_manager = HotkeyManager()
@@ -164,27 +172,47 @@ class ArcHelper:
         print(f"[HOTKEY] Recognition hotkey triggered!")
         print(f"{'='*60}")
 
-        # Immediately show loading overlay
-        try:
-            self.overlay.show_loading()
-        except Exception:
-            pass
-
         # Create a cancellation event for this recognition cycle
         cancel_event = _threading.Event()
-        # Set overlay close callback so closing loading overlay cancels recognition
-        try:
-            self.overlay.set_close_callback(cancel_event.set)
-        except Exception:
-            pass
 
         def process_in_thread():
             try:
-                print("[INFO] Hotkey pressed, capturing...")
+                print("[INFO] Hotkey pressed, showing capture frame...")
 
-                # Capture screen region under mouse cursor with configured size
+                # Get cursor position and capture size
                 capture_size = self.settings_manager.get_capture_size()
-                image = self.screen_capture.capture_at_cursor(size=capture_size)
+                cursor_x, cursor_y = self.screen_capture.get_cursor_position()
+
+                # Show capture frame at cursor position
+                self.capture_frame.show(cursor_x, cursor_y, capture_size[0], capture_size[1], duration=0.25, auto_hide=True)
+
+                # Wait for frame to be visible (0.5 seconds)
+                import time
+                time.sleep(0.5)
+
+                print("[INFO] Capturing screen (inner area of frame)...")
+
+                # Calculate inner capture size (excluding frame borders)
+                # Frame has borders on all sides, so subtract 2 * thickness from each dimension
+                inner_width = capture_size[0] - (2 * CAPTURE_FRAME_THICKNESS)
+                inner_height = capture_size[1] - (2 * CAPTURE_FRAME_THICKNESS)
+                inner_size = (inner_width, inner_height)
+
+                # Capture screen region under mouse cursor with inner size
+                # The cursor is at the center, so this captures the area inside the frame
+                image = self.screen_capture.capture_at_cursor(size=inner_size)
+
+                # NOW show loading overlay after screenshot is captured
+                try:
+                    self.overlay.show_loading()
+                except Exception:
+                    pass
+
+                # Set overlay close callback so closing loading overlay cancels recognition
+                try:
+                    self.overlay.set_close_callback(cancel_event.set)
+                except Exception:
+                    pass
 
                 if image is None:
                     print("[WARN] Failed to capture image")
@@ -307,6 +335,8 @@ class ArcHelper:
             self.hotkey_manager.cleanup()
         if self.overlay:
             self.overlay.cleanup()
+        if self.capture_frame:
+            self.capture_frame.cleanup()
         if self.settings_gui:
             self.settings_gui.cleanup()
         print("Goodbye!")

@@ -23,6 +23,13 @@ ArcHelperPy is a **production-ready** game overlay assistant for Ark Raiders tha
 - **Hotkey Detection**: keyboard library
 - **Windows API**: pywin32
 
+### Python Command
+**IMPORTANT**: On this system, always use `py` command instead of `python` to run Python scripts:
+```bash
+py script.py        # Correct
+python script.py    # Incorrect - will not work
+```
+
 ### Dependencies (requirements.txt)
 ```
 opencv-python>=4.8.0      # Multi-method image recognition
@@ -45,6 +52,7 @@ ArcHelperPy/
 │   ├── data_loader.py        # ItemDatabase class (items + hideout benches)
 │   ├── image_recognition.py  # Multi-method image matching
 │   ├── screen_capture.py     # Screen capture with DPI awareness
+│   ├── capture_frame.py      # Flashing frame overlay for capture preview
 │   ├── hotkey_manager.py     # Global hotkey registration
 │   ├── overlay.py            # Modern overlay UI system
 │   ├── settings_manager.py   # Settings persistence
@@ -207,6 +215,21 @@ Each bench JSON contains upgrade requirements organized by level:
 - Thread-safe context managers
 - Multiple monitor support
 
+### 4.5. Capture Frame Preview
+**Location**: [src/capture_frame.py](src/capture_frame.py)
+
+**Visual feedback overlay** that appears during screen capture:
+- Flashing frame border (green/yellow alternating, 4px thickness)
+- Shows exact capture area for 0.5 seconds
+- Screenshot captures **inner area only** (excluding frame borders)
+- Borderless transparent window
+- Always on top
+- Automatically sized to match capture_size from settings
+- Centered on cursor position
+- 10 flashes per second for smooth animation
+- Auto-closes after duration
+- Frame does NOT appear in captured screenshot
+
 ### 5. Hotkey Management
 **Location**: [src/hotkey_manager.py](src/hotkey_manager.py)
 
@@ -263,10 +286,13 @@ Each bench JSON contains upgrade requirements organized by level:
 
 ### Recognition Workflow
 1. User hovers over item and presses hotkey (`ctrl+d`)
-2. Show loading overlay immediately
-3. Capture 160x160px region centered on cursor (threaded)
-4. Save debug screenshot to `Debug/capture_YYYYMMDD_HHMMSS.png`
-5. Perform multi-method recognition:
+2. Show flashing capture frame at cursor position (0.5 seconds)
+3. Wait for frame animation to complete
+4. **Capture inner area of frame** (excluding 4px borders on all sides)
+5. Frame auto-hides after 0.5 seconds
+6. **Show loading overlay** (after screenshot to avoid appearing in capture)
+7. Save debug screenshot to `Debug/capture_YYYYMMDD_HHMMSS.png`
+8. Perform multi-method recognition:
    - Resize captured image to 160x160px
    - Convert to grayscale
    - Apply histogram equalization
@@ -274,10 +300,10 @@ Each bench JSON contains upgrade requirements organized by level:
    - Extract ORB features
    - Compare against all templates using 5 methods
    - Calculate weighted score
-6. If best match score >= 0.4 (40%):
+9. If best match score >= 0.4 (40%):
    - Retrieve item data from database
    - Show item overlay with all information
-7. If not recognized:
+10. If not recognized:
    - Show "Item not recognized" error overlay
    - Print top 3 matches to console for debugging
 
@@ -344,6 +370,7 @@ HOTKEY_DEBOUNCE_DELAY = 0.5          # Minimum delay between hotkey triggers (pr
 ICON_SIZE = (160, 160)               # Item icon size
 MATCH_THRESHOLD = 0.4                # Recognition confidence threshold (40%)
 CAPTURE_SIZE = (160, 160)            # Default screen capture size
+CAPTURE_FRAME_THICKNESS = 4          # Thickness of capture frame border in pixels
 OVERLAY_WIDTH = 620                  # Overlay window width
 OVERLAY_HEIGHT = 650                 # Overlay window height
 OVERLAY_ALPHA = 0.97                 # Overlay transparency (97% opaque)
@@ -355,17 +382,6 @@ Users can customize:
 - **language**: UI language (22 options)
 - **capture_size**: Screenshot size in pixels (50-500)
 - **recognition_hotkey**: Custom hotkey combination
-
-## Testing
-
-Test scripts are provided for individual components:
-- `test_recognition.py` - Image recognition testing
-- `test_settings.py` - Settings manager testing
-- `test_hotkey.py` - Hotkey detection testing
-- `test_settings_gui.py` - Settings GUI testing
-- `test_overlay_close.py` - Overlay closing behavior
-- `test_simple_load.py` - Data loading test
-- `test_minimal_gui.py` - Minimal GUI test
 
 ## Build System
 
@@ -424,9 +440,9 @@ Potential improvements:
 When modifying this codebase:
 
 1. **Maintain anti-cheat safety**: Never add features that hook, inject, or read game memory
-2. **Test thoroughly**: Use test scripts and verify in Debug/ folder
-3. **Update localization**: Add new UI text to all 22 languages in [src/localization.py](src/localization.py)
-4. **Document changes**: Update this file when adding features or changing architecture
-5. **Preserve thread safety**: Use proper locking for shared resources
-6. **Handle errors gracefully**: Show error overlays instead of crashing
-7. **Keep UI responsive**: Run heavy operations in background threads
+2. **Update localization**: Add new UI text to all 22 languages in [src/localization.py](src/localization.py)
+3. **Document changes**: Update this file when adding features or changing architecture
+4. **Preserve thread safety**: Use proper locking for shared resources
+5. **Handle errors gracefully**: Show error overlays instead of crashing
+6. **Keep UI responsive**: Run heavy operations in background threads
+7. **Do NOT create test scripts**: Only create or modify test scripts when explicitly requested by the user
