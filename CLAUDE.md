@@ -82,7 +82,13 @@ The project contains **448 game items** stored in `Data/Items/` with two compone
 - **JSON file**: Complete item metadata (`Data/Items/<item_id>.json`)
 - **WebP icon**: Item image for recognition (`Data/Items/Images/<item_id>.webp`, 160x160px)
 
-**Note**: Some items (weapons with tiers) have separate JSON files with suffixes (`_i`, `_ii`, `_iii`, `_iv`) but share the same base image file without the suffix.
+**Tiered Items**:
+Some items (weapons, attachments) have multiple tier variants with different stats but identical appearance:
+- Each tier has a separate JSON file: `anvil_i.json`, `anvil_ii.json`, `anvil_iii.json`, `anvil_iv.json`
+- All tiers share one image: `anvil.webp` (no tier suffix in image filename)
+- Tier suffixes use Roman numerals: `_i`, `_ii`, `_iii`, `_iv`, `_v` (tiers 1-5)
+- The overlay automatically detects available tiers and displays tier selector buttons
+- Recognition works on any tier (they all use the same image template)
 
 ### JSON Schema
 
@@ -178,6 +184,7 @@ Each bench JSON contains upgrade requirements organized by level:
 - Clickable materials (spawns new overlay windows)
 - Rarity-based color coding
 - Item image display (200x200px max)
+- **Tier selector buttons** (for items with multiple tiers)
 - Outside-click detection to close
 - Multi-window support (primary + spawned windows)
 - ESC key to close
@@ -192,6 +199,14 @@ Each bench JSON contains upgrade requirements organized by level:
 - **Salvages into** (combat salvage)
 - **Used to craft** (reverse lookup - items that use this material)
 - **Hideout usage** (bench requirements by level)
+
+**Tier System**:
+- Items with multiple tiers (e.g., weapons, attachments) display tier selector buttons
+- Buttons appear vertically to the right of the item image (20x20px each)
+- Active tier is highlighted with accent color
+- Clicking a tier button instantly switches the overlay to show that tier's data
+- Tier detection is automatic based on JSON file naming (_i, _ii, _iii, _iv, _v)
+- All tiers share the same base image file (without tier suffix)
 
 ### 3. Settings System
 **Location**: [src/settings_manager.py](src/settings_manager.py), [src/settings_gui.py](src/settings_gui.py)
@@ -271,6 +286,7 @@ Each bench JSON contains upgrade requirements organized by level:
 - Load 9 hideout bench definitions
 - Build reverse recipe mapping (material → items that use it)
 - Build hideout usage mapping (item → bench requirements by level)
+- **Tier detection** (identify available tiers for items with variants)
 - Multi-language name support
 - Search by name functionality
 - Efficient indexing by item ID

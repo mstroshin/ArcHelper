@@ -177,3 +177,34 @@ class ItemDatabase:
     def get_hideout_bench(self, bench_id: str) -> Optional[dict]:
         """Return hideout bench data by id."""
         return self.hideout_benches.get(bench_id)
+
+    def get_available_tiers(self, item_id: str) -> List[int]:
+        """
+        Get list of available tier numbers for an item.
+
+        For items like 'anvil_i', checks if anvil_ii, anvil_iii, etc. exist.
+        For base items like 'anvil', checks if anvil_i, anvil_ii, etc. exist.
+
+        Args:
+            item_id: Item ID (can be base or with tier suffix)
+
+        Returns:
+            List of tier numbers (1-5) that exist for this item, or empty list if no tiers
+        """
+        # Extract base item ID by removing tier suffix if present
+        base_id = item_id
+        for suffix in ('_v', '_iv', '_iii', '_ii', '_i'):
+            if item_id.endswith(suffix):
+                base_id = item_id[:-len(suffix)]
+                break
+
+        # Check which tier files exist
+        available_tiers = []
+        tier_suffixes = [('_i', 1), ('_ii', 2), ('_iii', 3), ('_iv', 4), ('_v', 5)]
+
+        for suffix, tier_num in tier_suffixes:
+            tier_id = f"{base_id}{suffix}"
+            if tier_id in self.items:
+                available_tiers.append(tier_num)
+
+        return available_tiers

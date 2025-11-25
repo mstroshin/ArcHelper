@@ -526,14 +526,20 @@ class OverlayUI:
             except Exception:
                 pass
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        self._add_item_info(scrollable_frame, item_data)
+        self._add_item_info(scrollable_frame, item_data, win)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar_frame.pack(side="right", fill="y")
         scrollbar_canvas.pack(fill="both", expand=True)
         win.after(100, update_scrollbar)
 
-    def _add_item_info(self, parent, item_data):
-        """Add item information to the frame."""
+    def _add_item_info(self, parent, item_data, window):
+        """Add item information to the frame.
+
+        Args:
+            parent: Parent frame widget
+            item_data: Item data dictionary
+            window: The toplevel window (for tier switching)
+        """
 
         # Content padding
         content = tk.Frame(parent, bg=COLORS['bg_dark'])
@@ -600,12 +606,36 @@ class OverlayUI:
             checkbox_label.bind('<Button-1>', toggle_mark)
             text_label.bind('<Button-1>', toggle_mark)
 
-        # Item image (if available)
+        # Item image (if available) with tier buttons
         img = self._load_item_image(item_data.get('id'))
+        available_tiers = self.database.get_available_tiers(item_data.get('id'))
+
         if img:
-            img_label = tk.Label(content, image=img, bg=COLORS['bg_dark'])
-            img_label.image = img  # keep reference
-            img_label.pack(anchor='w', pady=(0, 12))
+            # If item has multiple tiers, create container with image and tier buttons
+            if available_tiers and len(available_tiers) > 1:
+                img_container = tk.Frame(content, bg=COLORS['bg_dark'])
+                img_container.pack(anchor='w', pady=(0, 12))
+
+                # Image on the left
+                img_label = tk.Label(img_container, image=img, bg=COLORS['bg_dark'])
+                img_label.image = img  # keep reference
+                img_label.pack(side=tk.LEFT, padx=(0, 10))
+
+                # Tier buttons on the right in vertical column
+                tier_buttons_frame = tk.Frame(img_container, bg=COLORS['bg_dark'])
+                tier_buttons_frame.pack(side=tk.LEFT, anchor='n', pady=0)
+
+                # Get current tier number from item_id
+                current_tier = self._get_tier_from_id(item_data.get('id'))
+
+                # Create tier buttons
+                for tier_num in available_tiers:
+                    self._create_tier_button(tier_buttons_frame, item_data, tier_num, current_tier, window)
+            else:
+                # No tiers, just show image
+                img_label = tk.Label(content, image=img, bg=COLORS['bg_dark'])
+                img_label.image = img  # keep reference
+                img_label.pack(anchor='w', pady=(0, 12))
         else:
             # Optional subtle placeholder if no image found
             placeholder = tk.Label(content, text='[no image]', font=('Segoe UI', 10, 'italic'),
@@ -854,6 +884,74 @@ class OverlayUI:
                 lvl_label = tk.Label(req_row, text=f"• L{lvl} x{qty}", font=('Segoe UI', 11),
                                      fg=COLORS['text_primary'], bg=COLORS['bg_medium'])
                 lvl_label.pack(side=tk.LEFT, padx=(18,0))
+
+    def _get_tier_from_id(self, item_id: str) -> int:
+        """Extract tier number from item ID (e.g., 'anvil_ii' -> 2)."""
+        if not item_id:
+            return 1
+        item_id_lower = item_id.lower()
+        if item_id_lower.endswith('_v'):
+            return 5
+        elif item_id_lower.endswith('_iv'):
+            return 4
+        elif item_id_lower.endswith('_iii'):
+            return 3
+        elif item_id_lower.endswith('_ii'):
+            return 2
+        elif item_id_lower.endswith('_i'):
+            return 1
+        return 1
+
+    def _get_tier_item_id(self, base_item_id: str, tier_num: int) -> str:
+        """Build item ID for specific tier (e.g., 'anvil', 2 -> 'anvil_ii')."""
+        # Remove existing tier suffix if present
+        base_id = base_item_id
+        for suffix in ('_v', '_iv', '_iii', '_ii', '_i'):
+            if base_item_id.endswith(suffix):
+                base_id = base_item_id[:-len(suffix)]
+                break
+
+        # Add tier suffix
+        tier_suffixes = {1: '_i', 2: '_ii', 3: '_iii', 4: '_iv', 5: '_v'}
+        return f"{base_id}{tier_suffixes.get(tier_num, '_i')}"
+
+    def _create_tier_button(self, parent, item_data, tier_num, current_tier, window):
+        """Create a single tier button (20x20px)."""
+        # Determine if this is the active tier
+        is_active = (tier_num == current_tier)
+
+        # Button colors
+        btn_bg = COLORS['accent'] if is_active else COLORS['bg_medium']
+        btn_fg = COLORS['bg_dark'] if is_active else COLORS['text_secondary']
+
+        # Create button frame
+        btn = tk.Label(parent,
+                      text=str(tier_num),
+                      font=('Segoe UI', 11, 'bold'),
+                      fg=btn_fg,
+                      bg=btn_bg,
+                      width=2,
+                      height=1,
+                      cursor='hand2' if not is_active else 'arrow',
+                      relief='flat',
+                      borderwidth=1)
+        btn.pack(pady=2)
+
+        # Only bind click if not the current tier
+        if not is_active:
+            def switch_tier(event=None):
+                # Get the tier item ID
+                tier_item_id = self._get_tier_item_id(item_data.get('id'), tier_num)
+                tier_item_data = self.database.get_item(tier_item_id)
+
+                if tier_item_data:
+                    # Reload content with the new tier item data
+                    # Destroy current window content and rebuild
+                    for widget in window.winfo_children():
+                        widget.destroy()
+                    self._create_content(window, tier_item_data)
+
+            btn.bind('<Button-1>', switch_tier)
 
     def _make_draggable(self, win, widget):
         """Enable dragging of a toplevel window using the given widget as handle."""
