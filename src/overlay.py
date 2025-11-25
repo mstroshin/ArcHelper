@@ -5,6 +5,7 @@ from tkinter import ttk
 import threading
 import queue
 import os
+import time
 from functools import lru_cache
 from src.config import OVERLAY_WIDTH, OVERLAY_HEIGHT, OVERLAY_ALPHA, DEFAULT_LANGUAGE
 from src.localization import get_text
@@ -76,8 +77,8 @@ class OverlayUI:
         self._outside_detection_started = False
         # Image cache to avoid reloading from disk
         self._image_cache = {}
-        # Flag to suppress outside-click mass close when explicitly clicking a window's X
-        self._suppress_outside_close = False
+        # Timestamp to suppress outside-click detection after clicking close button
+        self._suppress_outside_close_until = 0
         # Optional callback invoked when the primary overlay window is closed manually
         self._close_callback = None
 
@@ -97,10 +98,15 @@ class OverlayUI:
                     while not self._command_queue.empty():
                         command, args = self._command_queue.get_nowait()
                         if command == 'show':
+                            # Replace primary window (loading) with item overlay, keep spawned windows
                             self._create_overlay(*args, close_existing=True)
                         elif command == 'loading':
-                            # Close only the primary window (not spawned), then show loading
-                            self._create_loading_overlay(close_existing=True)
+                            # Convert current primary window to spawned, then create new loading as primary
+                            if self.window:
+                                # Move existing primary window to spawned list to keep it open
+                                self._spawned_windows.append(self.window)
+                                self.window = None
+                            self._create_loading_overlay(close_existing=False)
                         elif command == 'error':
                             # args: (message,)
                             message = args[0]
@@ -139,6 +145,8 @@ class OverlayUI:
         Show the overlay with item information.
         This method is thread-safe and can be called from any thread.
 
+        Note: This replaces the primary loading window with the item overlay.
+
         Args:
             item_data: Item data dictionary to display
             duration: Time in seconds before auto-close (0 = no auto-close, default)
@@ -146,7 +154,11 @@ class OverlayUI:
         self._command_queue.put(('show', (item_data, duration)))
 
     def show_loading(self):
-        """Show an overlay immediately with a loading indicator while recognition runs."""
+        """Show an overlay immediately with a loading indicator while recognition runs.
+
+        Note: Converts existing primary window to spawned (keeping it open), then creates
+        new loading window as the new primary. This allows multiple item overlays to coexist.
+        """
         self._command_queue.put(('loading', ()))
 
     def show_error(self, message: str):
@@ -232,15 +244,19 @@ class OverlayUI:
             self._start_global_click_outside_detection()
 
     def _create_loading_overlay(self, close_existing=True):
-        """Create and display a loading overlay while recognition processes."""
+        """Create and display a loading overlay while recognition processes.
+
+        Args:
+            close_existing: If True, closes existing primary window first.
+                          If False, creates as primary without closing (caller should handle existing window).
+        """
         if close_existing:
             # Don't invoke callback when replacing window programmatically
             self._close_window(invoke_callback=False)
-            win = tk.Toplevel(self.root)
-            self.window = win
-        else:
-            win = tk.Toplevel(self.root)
-            self._spawned_windows.append(win)
+
+        # Always create loading overlay as the new primary window
+        win = tk.Toplevel(self.root)
+        self.window = win
 
         win.title("ArcHelper")
         win.geometry(f"{OVERLAY_WIDTH}x{OVERLAY_HEIGHT}")
@@ -271,7 +287,9 @@ class OverlayUI:
                              cursor='hand2')
         close_btn.pack(side=tk.RIGHT, padx=15, pady=10)
         def on_close_click(event, w=win):
-            self._suppress_outside_close = True
+            # Suppress outside-click detection for 300ms to prevent race condition
+            self._suppress_outside_close_until = time.time() + 0.3
+            # Close window immediately
             if w == self.window:
                 self._close_window()
             else:
@@ -297,26 +315,28 @@ class OverlayUI:
                         font=('Segoe UI', 11), fg=COLORS['text_tertiary'], bg=COLORS['bg_dark'])
         hint.pack(pady=(30, 10))
 
-        if close_existing:
-            win.bind('<Escape>', lambda e: self._close_window())
-            win.protocol('WM_DELETE_WINDOW', self._close_window)
-        else:
-            win.bind('<Escape>', lambda e, w=win: self._destroy_spawned(w))
-            win.protocol('WM_DELETE_WINDOW', lambda w=win: self._destroy_spawned(w))
+        # Loading overlay is always primary window, so use primary window close handlers
+        win.bind('<Escape>', lambda e: self._close_window())
+        win.protocol('WM_DELETE_WINDOW', self._close_window)
 
         if WIN32_AVAILABLE:
             self._start_global_click_outside_detection()
 
     def _create_error_overlay(self, message: str, close_existing=True):
-        """Create and display an error overlay after loader when something fails."""
+        """Create and display an error overlay after loader when something fails.
+
+        Args:
+            message: Error message to display
+            close_existing: If True, closes existing primary window first.
+                          If False, creates as primary without closing (caller should handle existing window).
+        """
         if close_existing:
             # Don't invoke callback when replacing window programmatically
             self._close_window(invoke_callback=False)
-            win = tk.Toplevel(self.root)
-            self.window = win
-        else:
-            win = tk.Toplevel(self.root)
-            self._spawned_windows.append(win)
+
+        # Always create error overlay as the new primary window
+        win = tk.Toplevel(self.root)
+        self.window = win
 
         win.title("ArcHelper")
         win.geometry(f"{OVERLAY_WIDTH}x{OVERLAY_HEIGHT}")
@@ -347,7 +367,9 @@ class OverlayUI:
                              cursor='hand2')
         close_btn.pack(side=tk.RIGHT, padx=15, pady=10)
         def on_close_click(event, w=win):
-            self._suppress_outside_close = True
+            # Suppress outside-click detection for 300ms to prevent race condition
+            self._suppress_outside_close_until = time.time() + 0.3
+            # Close window immediately
             if w == self.window:
                 self._close_window()
             else:
@@ -368,12 +390,9 @@ class OverlayUI:
                         font=('Segoe UI', 11), fg=COLORS['text_tertiary'], bg=COLORS['bg_dark'])
         hint.pack(pady=(10, 10))
 
-        if close_existing:
-            win.bind('<Escape>', lambda e: self._close_window())
-            win.protocol('WM_DELETE_WINDOW', self._close_window)
-        else:
-            win.bind('<Escape>', lambda e, w=win: self._destroy_spawned(w))
-            win.protocol('WM_DELETE_WINDOW', lambda w=win: self._destroy_spawned(w))
+        # Error overlay is always primary window, so use primary window close handlers
+        win.bind('<Escape>', lambda e: self._close_window())
+        win.protocol('WM_DELETE_WINDOW', self._close_window)
 
         if WIN32_AVAILABLE:
             self._start_global_click_outside_detection()
@@ -399,9 +418,11 @@ class OverlayUI:
                 self._outside_detection_started = False
                 return
             try:
-                # Skip one iteration if we purposely clicked a close button
-                if self._suppress_outside_close:
-                    self._suppress_outside_close = False
+                # Skip detection if we recently clicked a close button
+                current_time = time.time()
+                if current_time < self._suppress_outside_close_until:
+                    # Still in suppression window, skip this check
+                    pass
                 else:
                     cursor_x, cursor_y = win32api.GetCursorPos()
                     left_state = win32api.GetAsyncKeyState(win32con.VK_LBUTTON)
@@ -465,8 +486,9 @@ class OverlayUI:
                              cursor='hand2')
         close_btn.pack(side=tk.RIGHT, padx=15, pady=10)
         def on_close_click(event, w=win):
-            # Prevent outside click detector from treating this as outside all windows
-            self._suppress_outside_close = True
+            # Suppress outside-click detection for 300ms to prevent race condition
+            self._suppress_outside_close_until = time.time() + 0.3
+            # Close window immediately
             if w == self.window:
                 self._close_window()
             else:

@@ -277,7 +277,7 @@ class ArcHelper:
                     top_matches = self.recognizer.get_top_matches(image, 3, cancel_event=cancel_event)
                     if top_matches:
                         print("  Top matches:")
-                        for match_id, match_score in top_matches:
+                        for match_id, match_score, _details in top_matches:
                             match_item = self.database.get_item(match_id)
                             match_name = match_item['name']['en'] if match_item else match_id
                             print(f"    - {match_name}: {match_score:.2%}")
