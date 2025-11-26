@@ -38,7 +38,7 @@ pip install pyinstaller
 python -m PyInstaller ArcHelper.spec --clean      # release (no console)
 python -m PyInstaller ArcHelperDebug.spec --clean # debug (console)
 ```
-Result: `dist/ArcHelper.exe` / `dist/ArcHelperDebug.exe`. Data folder bundled automatically; `settings.json` + `Debug/` created at runtime.
+Result: `dist/ArcHelper.exe` / `dist/ArcHelperDebug.exe`. Data folder bundled automatically; `settings.json` created at runtime. Debug screenshots saved only in dev mode (not in release builds).
 
 ## Technical Details
 - Recognition blend (weighted): template correlation, equalized template, color histogram, ORB, optional fallbacks; configurable threshold (default 0.40).

@@ -25,7 +25,7 @@ from src.settings_manager import SettingsManager
 from src.settings_gui import SettingsGUI
 from src.localization import UI_TEXTS, get_text
 from src.capture_frame import CaptureFrame
-from src.config import CAPTURE_FRAME_THICKNESS
+from src.config import CAPTURE_FRAME_THICKNESS, DEBUG_MODE
 
 
 def flush_print(*args, **kwargs):
@@ -221,19 +221,20 @@ class ArcHelper:
                     self._show_not_recognized()
                     return
 
-                # Save screenshot to Debug folder (next to exe or in project root)
-                if getattr(sys, 'frozen', False):
-                    # Running as exe - save next to executable
-                    debug_dir = Path(sys.executable).parent / "Debug"
-                else:
-                    # Running as script - save in project root
-                    debug_dir = Path(__file__).parent / "Debug"
-                debug_dir.mkdir(exist_ok=True)
+                # Save screenshot to Debug folder only in debug mode (development)
+                if DEBUG_MODE:
+                    if getattr(sys, 'frozen', False):
+                        # Running as exe - save next to executable
+                        debug_dir = Path(sys.executable).parent / "Debug"
+                    else:
+                        # Running as script - save in project root
+                        debug_dir = Path(__file__).parent / "Debug"
+                    debug_dir.mkdir(exist_ok=True)
 
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                screenshot_path = debug_dir / f"capture_{timestamp}.png"
-                cv2.imwrite(str(screenshot_path), image)
-                print(f"[DEBUG] Screenshot saved to: {screenshot_path}")
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    screenshot_path = debug_dir / f"capture_{timestamp}.png"
+                    cv2.imwrite(str(screenshot_path), image)
+                    print(f"[DEBUG] Screenshot saved to: {screenshot_path}")
 
                 print("[INFO] Recognizing item...")
 

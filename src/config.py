@@ -1,5 +1,10 @@
 """Configuration settings for ArcHelperPy."""
 
+import sys
+
+# Debug mode (disabled in frozen/compiled builds, enabled in development)
+DEBUG_MODE = not getattr(sys, 'frozen', False)
+
 # Hotkey configuration
 DEFAULT_HOTKEY = 'ctrl+d'  # Hotkey to trigger item recognition
 HOTKEY_DEBOUNCE_DELAY = 0.5  # Minimum delay between hotkey triggers in seconds (prevents double-trigger)

@@ -165,7 +165,7 @@ Each bench JSON contains upgrade requirements organized by level:
 - Confidence threshold: 0.4 (40%)
 - Automatic image resizing to 160x160px
 - Supports WebP, PNG, and JPG formats
-- Debug screenshots saved to `Debug/` folder
+- Debug screenshots saved to `Debug/` folder (only in development mode)
 - Cancellation support to prevent wasted processing
 - Top 3 matches logged on failure
 
@@ -315,7 +315,7 @@ Each bench JSON contains upgrade requirements organized by level:
 4. **Capture inner area of frame** (excluding 4px borders on all sides)
 5. Frame auto-hides after 0.5 seconds
 6. **Show loading overlay** (after screenshot to avoid appearing in capture)
-7. Save debug screenshot to `Debug/capture_YYYYMMDD_HHMMSS.png`
+7. Save debug screenshot to `Debug/capture_YYYYMMDD_HHMMSS.png` (only in development mode)
 8. Perform multi-method recognition:
    - Resize captured image to 160x160px
    - Convert to grayscale
@@ -372,6 +372,12 @@ The `ItemDatabase` class builds several indexes on startup:
 - If a hotkey is pressed within the debounce window, the duplicate trigger is ignored
 - Debug messages show when a trigger is debounced
 
+### Debug Mode
+- Automatically disabled in release builds (frozen executables)
+- Automatically enabled when running from Python scripts (development)
+- Controls debug screenshot saving to `Debug/` folder
+- Determined by `DEBUG_MODE` flag in [src/config.py](src/config.py)
+
 ### Anti-Cheat Safety
 
 **The application follows strict anti-cheat guidelines**:
@@ -389,6 +395,7 @@ The `ItemDatabase` class builds several indexes on startup:
 
 ### Key Constants ([src/config.py](src/config.py))
 ```python
+DEBUG_MODE = not getattr(sys, 'frozen', False)  # Debug mode (False in exe, True in dev)
 DEFAULT_HOTKEY = 'ctrl+d'            # Default hotkey (overridden by settings)
 HOTKEY_DEBOUNCE_DELAY = 0.5          # Minimum delay between hotkey triggers (prevents double-trigger)
 ICON_SIZE = (160, 160)               # Item icon size
@@ -436,7 +443,8 @@ Build outputs:
 
 **Important Notes:**
 - The `Data/` folder is automatically packaged inside the exe
-- Settings (`settings.json`) and Debug screenshots are created next to the exe when run
+- Settings (`settings.json`) are created next to the exe when run
+- Debug screenshots are **NOT** saved in release builds (only in development)
 - First launch may take a few seconds while PyInstaller unpacks files
 - The exe is portable - no installation required, just copy and run
 - Run as administrator for global hotkey support
