@@ -1,6 +1,6 @@
 # ArcHelperPy
 
-ArcHelperPy is a passive overlay assistant for Ark Raiders: press a hotkey while hovering an item in-game and instantly see its crafting recipe, recycling/salvage outputs, reverse usage, and hideout bench relevance.
+ArcHelperPy is a passive overlay assistant for Arc Raiders: press a hotkey while hovering an item in-game and instantly see its crafting recipe, recycling/salvage outputs, reverse usage, and hideout bench relevance.
 
 ## Core Features
 - Item identification through combined image recognition (templates, histograms, features)
@@ -15,6 +15,12 @@ ArcHelperPy is a passive overlay assistant for Ark Raiders: press a hotkey while
 2. Run `ArcHelper.exe` (see Windows Defender note below).
 3. Pick language, adjust hotkey (default `Ctrl+D`), optionally change capture size (default 160×160).
 4. In-game: center cursor over item icon and press the hotkey. Overlay appears with details; click materials to drill down; press `ESC` to close.
+
+## Demo
+
+https://github.com/user-attachments/assets/74f95e98-522d-4cf2-9105-bf9624104883
+
+*Watch ArcHelper in action: hover over an item, press the hotkey, and instantly see detailed information.*
 
 ### ⚠️ Windows Defender Warning
 When running `ArcHelper.exe` for the first time, Windows may show **"Windows protected your PC"** warning. This is a false positive for unsigned applications.
