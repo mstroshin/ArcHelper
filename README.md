@@ -1,4 +1,4 @@
-# ArcHelperPy
+# ArcHelper
 
 ArcHelperPy is a passive overlay assistant for Arc Raiders: press a hotkey while hovering an item in-game and instantly see its crafting recipe, recycling/salvage outputs, reverse usage, and hideout bench relevance.
 
