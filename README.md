@@ -62,6 +62,9 @@ Result: `dist/ArcHelper.exe` / `dist/ArcHelperDebug.exe`. Data folder bundled au
 - Platform: Windows (global hotkey + pywin32). Requires Admin for reliable system-wide hotkey.
 - Localization: 22 languages via `localization.py`; new strings must be added for every locale.
 
+## Contact
+For questions, feedback, or bug reports, reach out at: **mstroshin@gmail.com**
+
 ## License & Credits
 MIT License. Community tool; use at your own risk.
 Data & inspiration thanks to:
