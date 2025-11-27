@@ -10,12 +10,6 @@ ArcHelperPy is a passive overlay assistant for Ark Raiders: press a hotkey while
 - Configurable hotkey, capture size, language & thresholds
 - Safe: screen capture only; no memory, hooks, injection, or suppression of input
 
-## Demo
-
-https://github.com/user-attachments/assets/your-video-id-here.mp4
-
-*Watch ArcHelper in action: hover over an item, press the hotkey, and instantly see detailed information.*
-
 ## Quick Start
 1. Download a release (or build locally).
 2. Run `ArcHelper.exe` (see Windows Defender note below).
