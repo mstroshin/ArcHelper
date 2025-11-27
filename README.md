@@ -12,16 +12,9 @@ ArcHelperPy is a passive overlay assistant for Ark Raiders: press a hotkey while
 
 ## Demo
 
-
-
 https://github.com/user-attachments/assets/your-video-id-here.mp4
 
 *Watch ArcHelper in action: hover over an item, press the hotkey, and instantly see detailed information.*
-
-**To add the video:**
-1. Edit this README on GitHub
-2. Drag and drop `arc_helper_0.1.2_vid.mp4` into the editor
-3. GitHub will upload it and generate the correct URL automatically
 
 ## Quick Start
 1. Download a release (or build locally).
