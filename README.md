@@ -12,9 +12,18 @@ ArcHelperPy is a passive overlay assistant for Ark Raiders: press a hotkey while
 
 ## Quick Start
 1. Download a release (or build locally).
-2. Run `ArcHelper.exe`.
+2. Run `ArcHelper.exe` (see Windows Defender note below).
 3. Pick language, adjust hotkey (default `Ctrl+D`), optionally change capture size (default 160×160).
 4. In-game: center cursor over item icon and press the hotkey. Overlay appears with details; click materials to drill down; press `ESC` to close.
+
+### ⚠️ Windows Defender Warning
+When running `ArcHelper.exe` for the first time, Windows may show **"Windows protected your PC"** warning. This is a false positive for unsigned applications.
+
+**How to run safely:**
+1. Click **"More info"**
+2. Click **"Run anyway"**
+
+**Why this happens:** ArcHelper is not code-signed with an expensive certificate (~$400/year). The application is safe—it only captures screenshots and displays overlays without touching game memory or files.
 
 ## Installation (Source)
 ```bash

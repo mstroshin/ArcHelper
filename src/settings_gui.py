@@ -87,7 +87,7 @@ class SettingsGUI:
 
             # Create main window
             self.window = tk.Tk()
-            self.window.title(f"ArcHelperPy - {get_text(self.language, 'settings_title')}")
+            self.window.title(f"Arc Helper - {get_text(self.language, 'settings_title')}")
             self.window.geometry("700x450")
             self.window.resizable(False, False)
 

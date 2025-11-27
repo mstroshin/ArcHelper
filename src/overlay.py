@@ -218,7 +218,7 @@ class OverlayUI:
             win = tk.Toplevel(self.root)
             self._spawned_windows.append(win)
 
-        win.title("ArcHelper")
+        win.title("ArcHelper by MaxPax")
         win.geometry(f"{OVERLAY_WIDTH}x{OVERLAY_HEIGHT}")
         win.attributes('-topmost', True)
         win.attributes('-alpha', OVERLAY_ALPHA)
@@ -580,7 +580,7 @@ class OverlayUI:
 
             # Text label "Ищу"
             text_label = tk.Label(checkbox_frame,
-                                 text="Ищу",
+                                 text=get_text(self.language, 'searching'),
                                  font=('Segoe UI', 12),
                                  fg=COLORS['text_secondary'],
                                  bg=COLORS['bg_dark'],

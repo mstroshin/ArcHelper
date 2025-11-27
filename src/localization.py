@@ -47,6 +47,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Recognizing item...',
         'not_recognized': 'Item not recognized',
+        'searching': 'Searching',
     },
     'ru': {
         # Overlay header
@@ -92,6 +93,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Распознаю предмет...',
         'not_recognized': 'Предмет не распознан',
+        'searching': 'Ищу',
     },
     'de': {
         # Overlay header
@@ -137,6 +139,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Gegenstand wird erkannt...',
         'not_recognized': 'Gegenstand nicht erkannt',
+        'searching': 'Suche',
     },
     'fr': {
         # Overlay header
@@ -182,6 +185,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': "Reconnaissance de l'objet...",
         'not_recognized': "Objet non reconnu",
+        'searching': 'Recherche',
     },
     'es': {
         # Overlay header
@@ -227,6 +231,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Reconociendo objeto...',
         'not_recognized': 'Objeto no reconocido',
+        'searching': 'Buscando',
     },
     'pt': {
         # Overlay header
@@ -272,6 +277,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Reconhecendo item...',
         'not_recognized': 'Item não reconhecido',
+        'searching': 'Procurando',
     },
     'pl': {
         # Overlay header
@@ -317,6 +323,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Rozpoznawanie przedmiotu...',
         'not_recognized': 'Nie rozpoznano przedmiotu',
+        'searching': 'Szukam',
     },
     'it': {
         # Overlay header
@@ -343,6 +350,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Riconoscimento oggetto...',
         'not_recognized': 'Oggetto non riconosciuto',
+        'searching': 'Ricerca',
     },
     'ja': {
         # Overlay header
@@ -369,6 +377,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'アイテムを認識中...',
         'not_recognized': 'アイテムを認識できませんでした',
+        'searching': '検索中',
     },
     'zh-CN': {
         # Overlay header
@@ -395,6 +404,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': '正在识别物品...',
         'not_recognized': '未识别到物品',
+        'searching': '搜索中',
     },
     'zh-TW': {
         # Overlay header
@@ -421,6 +431,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': '正在辨識物品...',
         'not_recognized': '未辨識到物品',
+        'searching': '搜尋中',
     },
     'kr': {
         # Overlay header
@@ -446,6 +457,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': '아이템 인식 중...',
         'not_recognized': '아이템을 인식하지 못했습니다',
+        'searching': '검색 중',
     },
     'no': {
         # Overlay header
@@ -473,6 +485,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Gjenkjenner gjenstand...',
         'not_recognized': 'Gjenstand ikke gjenkjent',
+        'searching': 'Søker',
     },
     'da': {
         # Overlay header
@@ -500,6 +513,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Genkender genstand...',
         'not_recognized': 'Genstand ikke genkendt',
+        'searching': 'Søger',
     },
     'uk': {
         # Overlay header
@@ -527,6 +541,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Розпізнаю предмет...',
         'not_recognized': 'Предмет не розпізнано',
+        'searching': 'Шукаю',
     },
     'tr': {
         # Overlay header
@@ -554,6 +569,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Öğe tanınıyor...',
         'not_recognized': 'Öğe tanınmadı',
+        'searching': 'Aranıyor',
     },
     'hr': {
         # Overlay header
@@ -581,6 +597,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Prepoznavanje predmeta...',
         'not_recognized': 'Predmet nije prepoznat',
+        'searching': 'Tražim',
     },
     'sr': {
         # Overlay header
@@ -608,6 +625,7 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': 'Prepoznavanje predmeta...',
         'not_recognized': 'Predmet nije prepoznat',
+        'searching': 'Tražim',
     },
 }
 
