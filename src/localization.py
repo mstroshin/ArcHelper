@@ -10,6 +10,7 @@ UI_TEXTS = {
         'weight': 'kg',
         'stack': 'Stack',
         'credits': 'credits',
+        'project_required': 'Required for Expedition',
 
         # Sections
         'crafting_recipe': '🔨 Crafting Recipe',
@@ -55,6 +56,7 @@ UI_TEXTS = {
         'weight': 'кг',
         'stack': 'Стак',
         'credits': 'кредитов',
+        'project_required': 'Нужен для экспедиции',
 
         # Sections
         'crafting_recipe': '🔨 Рецепт крафта',
@@ -99,6 +101,7 @@ UI_TEXTS = {
         'weight': 'kg',
         'stack': 'Stapel',
         'credits': 'Credits',
+        'project_required': 'Für Expedition benötigt',
 
         # Sections
         'crafting_recipe': '🔨 Herstellungsrezept',
@@ -143,6 +146,7 @@ UI_TEXTS = {
         'weight': 'kg',
         'stack': 'Pile',
         'credits': 'crédits',
+        'project_required': 'Requis pour l\'expédition',
 
         # Sections
         'crafting_recipe': '🔨 Recette de fabrication',
@@ -187,6 +191,7 @@ UI_TEXTS = {
         'weight': 'kg',
         'stack': 'Pila',
         'credits': 'créditos',
+        'project_required': 'Requerido para expedición',
 
         # Sections
         'crafting_recipe': '🔨 Receta de fabricación',
@@ -231,6 +236,7 @@ UI_TEXTS = {
         'weight': 'kg',
         'stack': 'Pilha',
         'credits': 'créditos',
+        'project_required': 'Necessário para expedição',
 
         # Sections
         'crafting_recipe': '🔨 Receita de fabricação',
@@ -275,6 +281,7 @@ UI_TEXTS = {
         'weight': 'kg',
         'stack': 'Stos',
         'credits': 'kredytów',
+        'project_required': 'Wymagane do ekspedycji',
 
         # Sections
         'crafting_recipe': '🔨 Przepis na wytworzenie',
@@ -319,6 +326,7 @@ UI_TEXTS = {
         'weight': 'kg',
         'stack': 'Pila',
         'credits': 'crediti',
+        'project_required': 'Richiesto per spedizione',
 
         # Sections
         'crafting_recipe': '🔨 Ricetta di fabbricazione',
@@ -344,6 +352,7 @@ UI_TEXTS = {
         'weight': 'kg',
         'stack': 'スタック',
         'credits': 'クレジット',
+        'project_required': '探検に必要',
 
         # Sections
         'crafting_recipe': '🔨 クラフトレシピ',
@@ -369,6 +378,7 @@ UI_TEXTS = {
         'weight': '公斤',
         'stack': '堆叠',
         'credits': '信用点',
+        'project_required': '远征所需',
 
         # Sections
         'crafting_recipe': '🔨 制作配方',
@@ -394,6 +404,7 @@ UI_TEXTS = {
         'weight': '公斤',
         'stack': '堆疊',
         'credits': '信用點',
+        'project_required': '遠征所需',
 
         # Sections
         'crafting_recipe': '🔨 製作配方',
@@ -419,6 +430,7 @@ UI_TEXTS = {
         'weight': 'kg',
         'stack': '스택',
         'credits': '크레딧',
+        'project_required': '원정에 필요',
 
         # Sections
         'crafting_recipe': '🔨 제작 레시피',
@@ -434,6 +446,168 @@ UI_TEXTS = {
         # Recognition status
         'recognizing': '아이템 인식 중...',
         'not_recognized': '아이템을 인식하지 못했습니다',
+    },
+    'no': {
+        # Overlay header
+        'app_title': 'ARC HELPER',
+
+        # Item properties
+        'weight': 'kg',
+        'stack': 'Stabel',
+        'credits': 'kreditter',
+        'project_required': 'Nødvendig for ekspedisjon',
+
+        # Sections
+        'crafting_recipe': '🔨 Oppskrift',
+        'requires': 'Krever',
+        'recycles_into': '♻ Resirkuleres til',
+        'salvages_into': '🔧 Demonteres til',
+        'used_to_craft': '🔧 Brukes til å lage',
+        'used_to_craft_count': '🔧 Brukes til å lage ({count} gjenstander)',
+        'hideout_uses_count': '🏠 Skjulested bruk ({count})',
+
+        # Instructions
+        'close_instruction': 'Trykk ESC eller klikk utenfor',
+        'and_more': '... og {count} flere',
+
+        # Recognition status
+        'recognizing': 'Gjenkjenner gjenstand...',
+        'not_recognized': 'Gjenstand ikke gjenkjent',
+    },
+    'da': {
+        # Overlay header
+        'app_title': 'ARC HELPER',
+
+        # Item properties
+        'weight': 'kg',
+        'stack': 'Stak',
+        'credits': 'credits',
+        'project_required': 'Krævet til ekspedition',
+
+        # Sections
+        'crafting_recipe': '🔨 Fremstillingsopskrift',
+        'requires': 'Kræver',
+        'recycles_into': '♻ Genbruges til',
+        'salvages_into': '🔧 Demonteres til',
+        'used_to_craft': '🔧 Bruges til at lave',
+        'used_to_craft_count': '🔧 Bruges til at lave ({count} genstande)',
+        'hideout_uses_count': '🏠 Skjulested brug ({count})',
+
+        # Instructions
+        'close_instruction': 'Tryk ESC eller klik udenfor',
+        'and_more': '... og {count} flere',
+
+        # Recognition status
+        'recognizing': 'Genkender genstand...',
+        'not_recognized': 'Genstand ikke genkendt',
+    },
+    'uk': {
+        # Overlay header
+        'app_title': 'ARC HELPER',
+
+        # Item properties
+        'weight': 'кг',
+        'stack': 'Стак',
+        'credits': 'кредитів',
+        'project_required': 'Потрібно для експедиції',
+
+        # Sections
+        'crafting_recipe': '🔨 Рецепт крафту',
+        'requires': 'Потрібно',
+        'recycles_into': '♻ Переробка',
+        'salvages_into': '🔧 Розбирання',
+        'used_to_craft': '🔧 Використовується для крафту',
+        'used_to_craft_count': '🔧 Використовується для крафту ({count} предм.)',
+        'hideout_uses_count': '🏠 Використання в сховищі ({count})',
+
+        # Instructions
+        'close_instruction': 'Натисніть ESC або клацніть поза вікном',
+        'and_more': '... і ще {count}',
+
+        # Recognition status
+        'recognizing': 'Розпізнаю предмет...',
+        'not_recognized': 'Предмет не розпізнано',
+    },
+    'tr': {
+        # Overlay header
+        'app_title': 'ARC HELPER',
+
+        # Item properties
+        'weight': 'kg',
+        'stack': 'Yığın',
+        'credits': 'kredi',
+        'project_required': 'Keşif için gerekli',
+
+        # Sections
+        'crafting_recipe': '🔨 Üretim tarifi',
+        'requires': 'Gerektirir',
+        'recycles_into': '♻ Geri dönüşüm',
+        'salvages_into': '🔧 Parçalara ayırma',
+        'used_to_craft': '🔧 Üretmek için kullanılır',
+        'used_to_craft_count': '🔧 Üretmek için kullanılır ({count} öğe)',
+        'hideout_uses_count': '🏠 Sığınak kullanımı ({count})',
+
+        # Instructions
+        'close_instruction': 'ESC tuşuna basın veya dışarı tıklayın',
+        'and_more': '... ve {count} daha',
+
+        # Recognition status
+        'recognizing': 'Öğe tanınıyor...',
+        'not_recognized': 'Öğe tanınmadı',
+    },
+    'hr': {
+        # Overlay header
+        'app_title': 'ARC HELPER',
+
+        # Item properties
+        'weight': 'kg',
+        'stack': 'Gomila',
+        'credits': 'kredita',
+        'project_required': 'Potrebno za ekspediciju',
+
+        # Sections
+        'crafting_recipe': '🔨 Recept izrade',
+        'requires': 'Zahtijeva',
+        'recycles_into': '♻ Reciklira se u',
+        'salvages_into': '🔧 Rastavlja se u',
+        'used_to_craft': '🔧 Koristi se za izradu',
+        'used_to_craft_count': '🔧 Koristi se za izradu ({count} predmeta)',
+        'hideout_uses_count': '🏠 Uporaba u skrovištu ({count})',
+
+        # Instructions
+        'close_instruction': 'Pritisnite ESC ili kliknite izvan',
+        'and_more': '... i još {count}',
+
+        # Recognition status
+        'recognizing': 'Prepoznavanje predmeta...',
+        'not_recognized': 'Predmet nije prepoznat',
+    },
+    'sr': {
+        # Overlay header
+        'app_title': 'ARC HELPER',
+
+        # Item properties
+        'weight': 'kg',
+        'stack': 'Gomila',
+        'credits': 'kredita',
+        'project_required': 'Potrebno za ekspediciju',
+
+        # Sections
+        'crafting_recipe': '🔨 Recept izrade',
+        'requires': 'Zahteva',
+        'recycles_into': '♻ Reciklira se u',
+        'salvages_into': '🔧 Rastavlja se u',
+        'used_to_craft': '🔧 Koristi se za izradu',
+        'used_to_craft_count': '🔧 Koristi se za izradu ({count} predmeta)',
+        'hideout_uses_count': '🏠 Upotreba u skrovištu ({count})',
+
+        # Instructions
+        'close_instruction': 'Pritisnite ESC ili kliknite izvan',
+        'and_more': '... i još {count}',
+
+        # Recognition status
+        'recognizing': 'Prepoznavanje predmeta...',
+        'not_recognized': 'Predmet nije prepoznat',
     },
 }
 

@@ -671,6 +671,10 @@ class OverlayUI:
         if 'value' in item_data:
             properties.append(('💰', f"{item_data['value']} {get_text(self.language, 'credits')}"))
 
+        # Add project required indicator if item is needed for expeditions
+        if self.database.is_required_for_project(item_data.get('id')):
+            properties.append(('🚗', get_text(self.language, 'project_required')))
+
         if properties:
             prop_frame = self._create_card_frame(content)
             for icon, text in properties:

@@ -30,6 +30,12 @@ class ItemDatabase:
         # item_id -> list of usage entries {bench_id, level, quantity}
         self.hideout_usage: Dict[str, List[dict]] = {}
 
+        # Projects (expeditions) data
+        self.projects_file = self.data_dir / "projects.json"
+        self.projects: List[dict] = []
+        # Set of all item IDs required for projects
+        self.project_required_items: set = set()
+
     def load_all_items(self):
         """Load all item JSON files and hideout benches."""
         if not self.items_dir.exists():
@@ -58,6 +64,9 @@ class ItemDatabase:
         # Load hideout benches (non-fatal if missing)
         self._load_hideout_benches()
         self._build_hideout_usage()
+
+        # Load projects (expeditions) data
+        self._load_projects()
 
     def _build_reverse_recipes(self):
         """Build a mapping of materials to items that use them in recipes."""
@@ -208,3 +217,41 @@ class ItemDatabase:
                 available_tiers.append(tier_num)
 
         return available_tiers
+
+    # ---------------- Projects (Expeditions) -----------------
+    def _load_projects(self):
+        """Load projects.json and build set of required item IDs."""
+        if not self.projects_file.exists():
+            return
+
+        try:
+            with open(self.projects_file, 'r', encoding='utf-8') as f:
+                self.projects = json.load(f)
+
+            # Build set of all required item IDs from all phases
+            for project in self.projects:
+                phases = project.get('phases', [])
+                for phase in phases:
+                    requirements = phase.get('requirementItemIds', [])
+                    for req in requirements:
+                        if isinstance(req, dict):
+                            item_id = req.get('itemId')
+                            if item_id:
+                                self.project_required_items.add(item_id)
+
+        except json.JSONDecodeError as e:
+            print(f"Error parsing projects.json: {e}")
+        except Exception as e:
+            print(f"Error loading projects.json: {e}")
+
+    def is_required_for_project(self, item_id: str) -> bool:
+        """
+        Check if an item is required for any project phase.
+
+        Args:
+            item_id: The item's unique identifier
+
+        Returns:
+            True if item is required for projects, False otherwise
+        """
+        return item_id in self.project_required_items

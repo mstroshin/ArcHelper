@@ -98,6 +98,7 @@ class ArcHelper:
         self.database = ItemDatabase(self.data_dir)
         self.database.load_all_items()
         flush_print(f"✓ Loaded {len(self.database.items)} items")
+        flush_print(f"✓ Loaded {len(self.database.project_required_items)} project-required items")
 
         # Initialize image recognizer
         flush_print("\nLoading item icons for recognition...")
