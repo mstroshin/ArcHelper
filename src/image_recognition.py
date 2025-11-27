@@ -219,6 +219,99 @@ class ItemRecognizer:
         score_details['final'] = final_score
         return max(0.0, min(1.0, final_score)), score_details
 
+    def _remove_white_background(self, image: np.ndarray) -> np.ndarray:
+        """
+        Remove white/light border from captured screenshot by cropping to content.
+
+        This helps when icons are smaller than expected and have white/light borders.
+        The function detects white edges and crops them away, then scales the icon
+        back to the original size.
+
+        Args:
+            image: Input image (BGR format)
+
+        Returns:
+            Processed image with white borders removed and icon scaled to original size
+        """
+        try:
+            # Convert to grayscale
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            h, w = gray.shape
+
+            # Check if edges are light (white/light gray background)
+            # Sample pixels from all 4 edges (use larger sample area)
+            edge_width = 5
+            top_edge = np.mean(gray[0:edge_width, :])
+            bottom_edge = np.mean(gray[-edge_width:, :])
+            left_edge = np.mean(gray[:, 0:edge_width])
+            right_edge = np.mean(gray[:, -edge_width:])
+
+            # Lower threshold to catch light gray backgrounds (>200 instead of >230)
+            light_threshold = 200
+            light_edges = sum([
+                top_edge > light_threshold,
+                bottom_edge > light_threshold,
+                left_edge > light_threshold,
+                right_edge > light_threshold
+            ])
+
+            # If less than 2 edges are light, no white background detected
+            if light_edges < 2:
+                return image
+
+            # Find non-white content by thresholding
+            # Lower threshold to catch more light backgrounds (180 instead of 230)
+            _, mask = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY_INV)
+
+            # Apply morphological operations to clean up the mask
+            kernel = np.ones((3, 3), np.uint8)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+            # Find contours to get the main content area
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            if not contours:
+                return image
+
+            # Find the largest contour (assumed to be the icon)
+            largest_contour = max(contours, key=cv2.contourArea)
+            x, y, cw, ch = cv2.boundingRect(largest_contour)
+
+            # Calculate content dimensions
+            content_width = cw
+            content_height = ch
+
+            # If content takes up most of the image (>85%), no need to crop
+            if content_width >= w * 0.85 and content_height >= h * 0.85:
+                return image
+
+            # If content is too small (<15% of image), might be noise - don't crop
+            if content_width < w * 0.15 or content_height < h * 0.15:
+                return image
+
+            # Add padding to the crop area
+            padding = 3
+            crop_left = max(0, x - padding)
+            crop_right = min(w, x + cw + padding)
+            crop_top = max(0, y - padding)
+            crop_bottom = min(h, y + ch + padding)
+
+            # Crop to content
+            cropped = image[crop_top:crop_bottom, crop_left:crop_right]
+
+            # Resize back to original dimensions
+            # This ensures the icon fills the frame properly for recognition
+            result = cv2.resize(cropped, (w, h), interpolation=cv2.INTER_LANCZOS4)
+
+            print(f"Background removal: cropped from {w}x{h} to {crop_right-crop_left}x{crop_bottom-crop_top}, resized back to {w}x{h}")
+
+            return result
+
+        except Exception as e:
+            print(f"Warning: Error removing white background: {e}")
+            return image  # Return original on error
+
     def recognize(self, image: np.ndarray, cancel_event=None) -> Optional[str]:
         """
         Recognize an item from a captured image using advanced template matching.
@@ -234,6 +327,9 @@ class ItemRecognizer:
             return None
 
         try:
+            # Remove white background if present
+            image = self._remove_white_background(image)
+
             # Resize captured image to standard size if needed
             if image.shape[:2] != (ICON_SIZE[1], ICON_SIZE[0]):
                 image = cv2.resize(image, ICON_SIZE)
@@ -301,6 +397,9 @@ class ItemRecognizer:
             return None
 
         try:
+            # Remove white background if present
+            image = self._remove_white_background(image)
+
             # Resize captured image to standard size if needed
             if image.shape[:2] != (ICON_SIZE[1], ICON_SIZE[0]):
                 image = cv2.resize(image, ICON_SIZE)
@@ -368,6 +467,9 @@ class ItemRecognizer:
             return []
 
         try:
+            # Remove white background if present
+            image = self._remove_white_background(image)
+
             # Resize captured image to standard size if needed
             if image.shape[:2] != (ICON_SIZE[1], ICON_SIZE[0]):
                 image = cv2.resize(image, ICON_SIZE)
